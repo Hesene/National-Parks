@@ -14,7 +14,7 @@ from matplotlib.font_manager import FontProperties
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold, StratifiedKFold
 
-from Preprocessing import train_test
+from preprocess import train_test
 from utils import line_notify
 
 # 日本語表示用の設定
@@ -152,7 +152,7 @@ def main(debug = False):
         df = train_test(num_rows)
         print("df shape:", df.shape)
     with timer("Run LightGBM with kfold"):
-        feat_importance = kfold_lightgbm(df, num_folds=5, stratified=False, debug=debug)
+        feat_importance = kfold_lightgbm(df, num_folds=10, stratified=False, debug=debug)
         display_importances(feat_importance ,'../output/lgbm_importances.png', '../output/feature_importance_lgbm.csv')
 
 if __name__ == "__main__":
