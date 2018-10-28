@@ -152,7 +152,7 @@ def main(debug = False):
     with timer("train & test"):
         df = train_test(num_rows)
     with timer("nightley"):
-        df = pd.merge(df, nightley(num_rows), on='datetime')
+        df = pd.merge(df, nightley(num_rows), on='datetime', how='outer')
         print("df shape:", df.shape)
     with timer("Run LightGBM with kfold"):
         feat_importance = kfold_lightgbm(df, num_folds=NUM_FOLDS, stratified=False, debug=debug)
