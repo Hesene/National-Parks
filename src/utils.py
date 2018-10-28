@@ -3,6 +3,19 @@ import pandas as pd
 import numpy as np
 import requests
 
+NUM_FOLDS = 5
+
+PARKS= [
+        '阿寒摩周国立公園',
+        '十和田八幡平国立公園',
+        '日光国立公園',
+        '伊勢志摩国立公園',
+        '大山隠岐国立公園',
+        '阿蘇くじゅう国立公園',
+        '霧島錦江湾国立公園',
+        '慶良間諸島国立公園',
+        ]
+
 # One-hot encoding for categorical columns with get_dummies
 def one_hot_encoder(df, nan_as_category = True):
     original_columns = list(df.columns)

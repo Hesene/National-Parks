@@ -5,6 +5,11 @@ import gc
 
 from utils import one_hot_encoder
 
+################################################################################
+# 提供データを読み込み、データに前処理を施し、モデルに入力が可能な状態でファイル出力するモジュール。
+# get_train_dataやget_test_dataのように、学習用と評価用を分けて、前処理を行う関数を定義してください。
+################################################################################
+
 # Preprocess train.tsv and test.tsv
 def train_test(num_rows=None):
     print("Loading datasets...")
@@ -47,9 +52,59 @@ def train_test(num_rows=None):
 
     return df
 
+# Preprocess colopl.tsv
+def colopl(num_rows=None):
+    colopl = pd.read_csv('../input/colopl.tsv', sep='\t')
+
+    return colopl
+
+# Preprocess hotlink.tsv
+def hotlink(num_rows=None):
+    hotlink = pd.read_csv('../input/hotlink.tsv', sep='\t')
+
+    return hotlink
+
+# Preprocess nied_oyama.tsv
+def nied_oyama(num_rows=None):
+    nied_oyama = pd.read_csv('../input/nied_oyama.tsv', sep='\t')
+
+    return nied_oyama
+
+# Preprocess nightley.tsv
+def nightley(num_rows=None):
+    nightley = pd.read_csv('../input/nightley.tsv', sep='\t')
+    nightley.loc[:,'datetime'] = pd.to_datetime(nightley['datetime'])
+
+    # 1日先へシフト
+    nightley[['Japan_count','Foreign_count']] = nightley[['Japan_count','Foreign_count']].shift()
+
+    # additional feature
+    nightley['NIGHTLEY_F_J_RATIO'] = nightley['Foreign_count'] / nightley['Japan_count']
+    nightley['NIGHTLEY_F_J_SUM'] = nightley['Foreign_count'] + nightley['Japan_count']
+
+    return nightley
+
+# Preprocess weather.tsv
+def weather(num_rows=None):
+    weather = pd.read_csv('../input/weather.tsv', sep='\t')
+
+    return weather
 
 if __name__ == '__main__':
     num_rows=10000
     # train & test
     df = train_test(num_rows)
+
+    # colopl
+#    colopl = colopl(num_rows)
+#    df = df.join(colopl, how='left', on=[['datetime', 'park']])
+
+    # hotlink
+#    hotlink = hotlink(num_rows)
+#    df = df.join(hotlink, how='left', on=[['datetime', 'park']])
+
+    # nightley
+    nightley = nightley(num_rows)
+    df = df.join(nightley, how='left', on='datetime')
+
     print(df)

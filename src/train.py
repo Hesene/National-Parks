@@ -14,8 +14,8 @@ from matplotlib.font_manager import FontProperties
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold, StratifiedKFold
 
-from preprocess import train_test
-from utils import line_notify
+from preprocess import train_test, nightley
+from utils import line_notify, NUM_FOLDS
 
 # 日本語表示用の設定
 font_path = '/usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf'
@@ -23,7 +23,8 @@ font_prop = FontProperties(fname=font_path)
 matplotlib.rcParams['font.family'] = font_prop.get_name()
 
 ################################################################################
-# Kuso-simple LightGBM k-fold
+# Preprocessingで作成したファイルを読み込み、モデルを学習するモジュール。
+# 学習済みモデルや特徴量、クロスバリデーションの評価結果を出力する関数も定義してください。
 ################################################################################
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -148,11 +149,13 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
 
 def main(debug = False):
     num_rows = 10000 if debug else None
-    with timer("Preprocessing"):
+    with timer("train & test"):
         df = train_test(num_rows)
+    with timer("nightley"):
+        df = pd.merge(df, nightley(num_rows), on='datetime')
         print("df shape:", df.shape)
     with timer("Run LightGBM with kfold"):
-        feat_importance = kfold_lightgbm(df, num_folds=5, stratified=False, debug=debug)
+        feat_importance = kfold_lightgbm(df, num_folds=NUM_FOLDS, stratified=False, debug=debug)
         display_importances(feat_importance ,'../output/lgbm_importances.png', '../output/feature_importance_lgbm.csv')
 
 if __name__ == "__main__":
