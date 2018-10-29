@@ -11,7 +11,7 @@ import warnings
 
 from contextlib import contextmanager
 from matplotlib.font_manager import FontProperties
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold
 
 from preprocess import train_test, nightley
@@ -75,8 +75,8 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
 
     # k-fold
     for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
-        train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
-        valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
+        train_x, train_y = train_df[feats].iloc[train_idx], train_df['visitors'].iloc[train_idx]
+        valid_x, valid_y = train_df[feats].iloc[valid_idx], train_df['visitors'].iloc[valid_idx]
 
         # set data structure
         lgb_train = lgb.Dataset(train_x,
@@ -93,7 +93,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                 'task': 'train',
                 'boosting': 'gbdt',
                 'objective': 'regression',
-                'metric': 'rmse',
+                'metric': 'mae',
                 'num_iteration': 10000,
                 'learning_rate': 0.02,
                 'num_leaves': 31,
@@ -123,21 +123,21 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
         # save model
         reg.save_model('../output/lgbm_'+str(n_fold)+'.txt')
 
-        oof_preds[valid_idx] = np.expm1(reg.predict(valid_x, num_iteration=reg.best_iteration))
-        sub_preds += np.expm1(reg.predict(test_df[feats], num_iteration=reg.best_iteration)) / folds.n_splits
+        oof_preds[valid_idx] = reg.predict(valid_x, num_iteration=reg.best_iteration)
+        sub_preds += reg.predict(test_df[feats], num_iteration=reg.best_iteration) / folds.n_splits
 
         fold_importance_df = pd.DataFrame()
         fold_importance_df["feature"] = feats
         fold_importance_df["importance"] = reg.feature_importance(importance_type='gain', iteration=reg.best_iteration)
         fold_importance_df["fold"] = n_fold + 1
         feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
-        print('Fold %2d RMSE : %.6f' % (n_fold + 1, np.sqrt(mean_squared_error(valid_y, np.log1p(oof_preds[valid_idx])))))
+        print('Fold %2d MAE : %.6f' % (n_fold + 1, mean_absolute_error(valid_y, oof_preds[valid_idx])))
         del reg, train_x, train_y, valid_x, valid_y
         gc.collect()
 
-    # Full RMSEスコアの表示&LINE通知
-    full_rmse = np.sqrt(mean_squared_error(np.log1p(train_df['visitors']), np.log1p(oof_preds)))
-    line_notify('Full RMSE score %.6f' % full_rmse)
+    # Full MAEスコアの表示&LINE通知
+    full_mae = mean_absolute_error(train_df['visitors'], oof_preds)
+    line_notify('Full MAE score %.6f' % full_mae)
 
     if not debug:
         # 提出データの予測値を保存
