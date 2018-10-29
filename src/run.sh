@@ -1,3 +1,3 @@
 #!/bin/sh
-python training.py
-python predict.py
+python train.py
+#python predict.py

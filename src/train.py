@@ -71,10 +71,10 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     oof_preds = np.zeros(train_df.shape[0])
     sub_preds = np.zeros(test_df.shape[0])
     feature_importance_df = pd.DataFrame()
-    feats = [f for f in train_df.columns if f not in ['index', 'datetime', 'visitors']]
+    feats = [f for f in train_df.columns if f not in ['index', 'datetime', 'visitors', 'year', 'park']]
 
     # k-fold
-    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['visitors'])):
+    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
         train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
         valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
 
@@ -120,6 +120,9 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                         verbose_eval=100
                         )
 
+        # save model
+        reg.save_model('../output/lgbm_'+str(n_fold)+'.txt')
+
         oof_preds[valid_idx] = np.expm1(reg.predict(valid_x, num_iteration=reg.best_iteration))
         sub_preds += np.expm1(reg.predict(test_df[feats], num_iteration=reg.best_iteration)) / folds.n_splits
 
@@ -155,7 +158,7 @@ def main(debug = False):
         df = pd.merge(df, nightley(num_rows), on='datetime', how='outer')
         print("df shape:", df.shape)
     with timer("Run LightGBM with kfold"):
-        feat_importance = kfold_lightgbm(df, num_folds=NUM_FOLDS, stratified=False, debug=debug)
+        feat_importance = kfold_lightgbm(df, num_folds=NUM_FOLDS, stratified=True, debug=debug)
         display_importances(feat_importance ,'../output/lgbm_importances.png', '../output/feature_importance_lgbm.csv')
 
 if __name__ == "__main__":

@@ -33,6 +33,7 @@ def train_test(num_rows=None):
     # 季節性の特徴量を追加
     df['day'] = df['datetime'].dt.day.astype(object)
     df['month'] = df['datetime'].dt.month.astype(object)
+    df['year'] = df['datetime'].dt.year.astype(object)
     df['weekday'] = df['datetime'].dt.weekday.astype(object)
     df['weekofyear'] = df['datetime'].dt.weekofyear.astype(object)
 #    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
@@ -48,9 +49,12 @@ def train_test(num_rows=None):
 #    df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
 
     # categorical変数を変換
-    df, cat_cols = one_hot_encoder(df, nan_as_category=False)
+    df_res, cat_cols = one_hot_encoder(df, nan_as_category=False)
 
-    return df
+    # stratify用
+    df_res['park'] = df['park']
+
+    return df_res
 
 # Preprocess colopl.tsv
 def colopl(num_rows=None):
