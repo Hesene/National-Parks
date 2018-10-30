@@ -33,7 +33,7 @@ def train_test(num_rows=None):
     # 季節性の特徴量を追加
     df['day'] = df['datetime'].dt.day.astype(object)
     df['month'] = df['datetime'].dt.month.astype(object)
-    df['year'] = df['datetime'].dt.year.astype(object)
+#    df['year'] = df['datetime'].dt.year.astype(object)
     df['weekday'] = df['datetime'].dt.weekday.astype(object)
     df['weekofyear'] = df['datetime'].dt.weekofyear.astype(object)
 #    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
@@ -53,6 +53,7 @@ def train_test(num_rows=None):
 
     # stratify用
     df_res['park'] = df['park']
+    df_res['weekofyear'] = df['weekofyear'].astype(int)
 
     return df_res
 
@@ -64,7 +65,17 @@ def colopl(num_rows=None):
 
 # Preprocess hotlink.tsv
 def hotlink(num_rows=None):
+    # load csv
     hotlink = pd.read_csv('../input/hotlink.tsv', sep='\t')
+
+    # aggregate by datetime & keyword
+    hotlink = hotlink.pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
+
+    # indexをdatetime型に変換
+    hotlink.index = pd.to_datetime(hotlink.index)
+
+    # 1日先へシフト
+    hotlink = hotlink.shift()
 
     return hotlink
 
@@ -108,7 +119,9 @@ if __name__ == '__main__':
 #    df = df.join(hotlink, how='left', on=[['datetime', 'park']])
 
     # nightley
-    nightley = nightley(num_rows)
-    df = df.join(nightley, how='left', on='datetime')
+    df = df.join(nightley(num_rows), how='left', on='datetime')
+
+    # hotlink
+    df = df.join(hotlink(num_rows), how='left', on='datetime')
 
     print(df)

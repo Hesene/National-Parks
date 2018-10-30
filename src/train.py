@@ -14,7 +14,7 @@ from matplotlib.font_manager import FontProperties
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold
 
-from preprocess import train_test, nightley
+from preprocess import train_test, nightley, hotlink
 from utils import line_notify, NUM_FOLDS
 
 # 日本語表示用の設定
@@ -71,10 +71,10 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     oof_preds = np.zeros(train_df.shape[0])
     sub_preds = np.zeros(test_df.shape[0])
     feature_importance_df = pd.DataFrame()
-    feats = [f for f in train_df.columns if f not in ['index', 'datetime', 'visitors', 'year', 'park']]
+    feats = [f for f in train_df.columns if f not in ['index', 'datetime', 'visitors', 'year', 'park', 'weekofyear']]
 
     # k-fold
-    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
+    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['weekofyear'])):
         train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
         valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
 
@@ -156,6 +156,8 @@ def main(debug = False):
         df = train_test(num_rows)
     with timer("nightley"):
         df = pd.merge(df, nightley(num_rows), on='datetime', how='outer')
+    with timer("hotlink"):
+        df = pd.merge(df, hotlink(num_rows), on='datetime', how='outer')
         print("df shape:", df.shape)
     with timer("Run LightGBM with kfold"):
         feat_importance = kfold_lightgbm(df, num_folds=NUM_FOLDS, stratified=True, debug=debug)
