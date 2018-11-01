@@ -105,6 +105,12 @@ def weather(num_rows=None):
 
     return weather
 
+# Preprocess jorudan.tsv
+def jorudan(num_rows=None):
+    jorudan = pd.read_csv('../input/jorudan.tsv', sep='\t')
+
+    return weather
+
 if __name__ == '__main__':
     num_rows=10000
     # train & test

@@ -128,7 +128,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
 
         fold_importance_df = pd.DataFrame()
         fold_importance_df["feature"] = feats
-        fold_importance_df["importance"] = reg.feature_importance(importance_type='gain', iteration=reg.best_iteration)
+        fold_importance_df["importance"] = np.log1p(reg.feature_importance(importance_type='gain', iteration=reg.best_iteration))
         fold_importance_df["fold"] = n_fold + 1
         feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
         print('Fold %2d MAE : %.6f' % (n_fold + 1, mean_absolute_error(np.expm1(valid_y), oof_preds[valid_idx])))
