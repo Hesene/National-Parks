@@ -57,6 +57,10 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     train_df = df[df['visitors'].notnull()]
     test_df = df[df['visitors'].isnull()]
 
+    # 確認用にcsvをsave
+    train_df.to_csv('../output/train_df.csv')
+    test_df.to_csv('../output/test_df.csv')
+
     print("Starting LightGBM. Train shape: {}, test shape: {}".format(train_df.shape, test_df.shape))
     del df
     gc.collect()
