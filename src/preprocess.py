@@ -33,7 +33,6 @@ def train_test(num_rows=None):
     # 季節性の特徴量を追加
     df['day'] = df['datetime'].dt.day.astype(object)
     df['month'] = df['datetime'].dt.month.astype(object)
-#    df['year'] = df['datetime'].dt.year.astype(object)
     df['weekday'] = df['datetime'].dt.weekday.astype(object)
     df['weekofyear'] = df['datetime'].dt.weekofyear.astype(object)
 #    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
@@ -51,15 +50,26 @@ def train_test(num_rows=None):
     # categorical変数を変換
     df_res, cat_cols = one_hot_encoder(df, nan_as_category=False)
 
-    # stratify用
+    # stratify & mearge用
     df_res['park'] = df['park']
     df_res['weekofyear'] = df['weekofyear'].astype(int)
+    df_res['year'] = df['datetime'].dt.year.astype(int)
+    df_res['month'] = df['datetime'].dt.month.astype(int)
 
     return df_res
 
 # Preprocess colopl.tsv
 def colopl(num_rows=None):
     colopl = pd.read_csv('../input/colopl.tsv', sep='\t')
+
+    # 1-9をとりあえず5で埋めます
+    colopl['count'] = colopl['count'].replace('1-9', 5).astype(int)
+
+    # 月ごとに集計
+    colopl = colopl.pivot_table(index=['year', 'month'], columns='country_jp', values='count', aggfunc=sum)
+
+    #　１ヶ月先へシフト
+    colopl = colopl.shift()
 
     return colopl
 
@@ -89,6 +99,7 @@ def nied_oyama(num_rows=None):
 def nightley(num_rows=None):
     nightley = pd.read_csv('../input/nightley.tsv', sep='\t')
     nightley.loc[:,'datetime'] = pd.to_datetime(nightley['datetime'])
+    nightley['park'] = '日光国立公園'
 
     # 1日先へシフト
     nightley[['Japan_count','Foreign_count']] = nightley[['Japan_count','Foreign_count']].shift()
