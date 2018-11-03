@@ -16,6 +16,24 @@ PARKS= {
         '慶良間諸島国立公園': 'KERAMA',
         }
 
+# weatherデータの紐付け用
+PARK_POINT = {
+            '熊本': '阿蘇くじゅう国立公園',
+            '釧路': '阿寒摩周国立公園',
+            '青森': '十和田八幡平国立公園',
+            '十和田': '十和田八幡平国立公園',
+            '渡嘉敷': '慶良間諸島国立公園',
+            '高森': '阿蘇くじゅう国立公園',
+            '鹿児島': '霧島錦江湾国立公園',
+            '鳥羽': '伊勢志摩国立公園',
+            '大田': '大山隠岐国立公園',
+            '大山': '大山隠岐国立公園',
+            '鹿角': '十和田八幡平国立公園',
+            '日光': '日光国立公園'
+            }
+
+FEATS_EXCLUDED = ['index', 'datetime', 'visitors', 'year', 'park', 'weekofyear', 'month']
+
 # One-hot encoding for categorical columns with get_dummies
 def one_hot_encoder(df, nan_as_category = True):
     original_columns = list(df.columns)
@@ -24,7 +42,7 @@ def one_hot_encoder(df, nan_as_category = True):
     new_columns = [c for c in df.columns if c not in original_columns]
     return df, new_columns
 
-# correlation高い変数を削除する機能
+# correlationの高い変数を削除する機能
 def removeCorrelatedVariables(data, threshold):
     corr_matrix = data.corr().abs()
     upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))

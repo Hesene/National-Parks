@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import gc
 
-from utils import one_hot_encoder
+from utils import one_hot_encoder, PARK_POINT, PARKS
 
 ################################################################################
 # 提供データを読み込み、データに前処理を施し、モデルに入力が可能な状態でファイル出力するモジュール。
@@ -35,17 +35,17 @@ def train_test(num_rows=None):
     df['month'] = df['datetime'].dt.month.astype(object)
     df['weekday'] = df['datetime'].dt.weekday.astype(object)
     df['weekofyear'] = df['datetime'].dt.weekofyear.astype(object)
-#    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
-#    df['day_weekday'] = df['day'].astype(str)+'_'+df['weekday'].astype(str)
-#    df['day_weekofyear'] = df['day'].astype(str)+'_'+df['weekofyear'].astype(str)
-#    df['month_weekday'] = df['month'].astype(str)+'_'+df['weekday'].astype(str)
-#    df['month_weekofyear'] = df['month'].astype(str)+'_'+df['weekofyear'].astype(str)
-#    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
+    df['day_weekday'] = df['day'].astype(str)+'_'+df['weekday'].astype(str)
+    df['day_weekofyear'] = df['day'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['month_weekday'] = df['month'].astype(str)+'_'+df['weekday'].astype(str)
+    df['month_weekofyear'] = df['month'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
 
-#    df['park_day'] = df['park'].astype(str)+'_'+df['day'].astype(str)
-#    df['park_month'] = df['park'].astype(str)+'_'+df['month'].astype(str)
-#    df['park_weekday'] = df['park'].astype(str)+'_'+df['weekday'].astype(str)
-#    df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['park_day'] = df['park'].astype(str)+'_'+df['day'].astype(str)
+    df['park_month'] = df['park'].astype(str)+'_'+df['month'].astype(str)
+    df['park_weekday'] = df['park'].astype(str)+'_'+df['weekday'].astype(str)
+    df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
 
     # categorical変数を変換
     df_res, cat_cols = one_hot_encoder(df, nan_as_category=False)
@@ -71,6 +71,9 @@ def colopl(num_rows=None):
     #　１ヶ月先へシフト
     colopl = colopl.shift()
 
+    # カラム名を変更
+    colopl.columns = ['COLOPL_'+ c for c in colopl.columns]
+
     return colopl
 
 # Preprocess hotlink.tsv
@@ -87,11 +90,29 @@ def hotlink(num_rows=None):
     # 1日先へシフト
     hotlink = hotlink.shift()
 
+    # カラム名を変更
+    hotlink.columns = ['HOTLINK_'+ c for c in hotlink.columns]
+
     return hotlink
 
 # Preprocess nied_oyama.tsv
 def nied_oyama(num_rows=None):
     nied_oyama = pd.read_csv('../input/nied_oyama.tsv', sep='\t')
+
+    # 日付を追加
+    nied_oyama['datetime'] = pd.DatetimeIndex(pd.to_datetime(nied_oyama['日時'])).normalize()
+
+    # 公園名を追加
+    nied_oyama['park'] = '大山隠岐国立公園'
+
+    # 日付・公園ごとに集計
+    nied_oyama = nied_oyama.groupby(['datetime', 'park']).mean()
+
+    # 1日先へシフト
+    nied_oyama = nied_oyama.shift()
+
+    # カラム名を変更
+    nied_oyama.columns = ['NIED_OYAMA_'+ c for c in nied_oyama.columns]
 
     return nied_oyama
 
@@ -108,11 +129,34 @@ def nightley(num_rows=None):
     nightley['NIGHTLEY_F_J_RATIO'] = nightley['Foreign_count'] / nightley['Japan_count']
     nightley['NIGHTLEY_F_J_SUM'] = nightley['Foreign_count'] + nightley['Japan_count']
 
+    # 日付と公園毎に集計
+    nightley = nightley.groupby(['datetime', 'park']).mean()
+
+    # カラム名を変更
+    nightley.columns = ['NIGHTLEY_'+ c for c in nightley.columns]
+
     return nightley
 
 # Preprocess weather.tsv
 def weather(num_rows=None):
     weather = pd.read_csv('../input/weather.tsv', sep='\t')
+    weather['datetime'] = pd.to_datetime(weather['年月日'])
+
+    # 公園と紐付け
+    weather['park'] = weather['地点'].map(PARK_POINT)
+
+    # 不要なカラムを削除
+    feats = [c for c in weather.columns if c not in ['年月日', '地点', '天気概況(昼:06時~18時)', '天気概況(夜:18時~翌日06時)']]
+
+    # 日付と公園ごとに集計
+    weather = weather[feats].groupby(['park', 'datetime']).mean()
+
+    # １日前にシフト
+    for park in PARKS.keys():
+        weather.loc[park, :] = weather[weather.loc[park, :]==park].shift()
+
+    # カラム名を変更
+    weather.columns = ['WEATHER_'+ c for c in weather.columns]
 
     return weather
 

@@ -14,8 +14,8 @@ from matplotlib.font_manager import FontProperties
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold
 
-from preprocess import train_test, nightley, hotlink, colopl
-from utils import line_notify, NUM_FOLDS
+from preprocess import train_test, nightley, hotlink, colopl, weather, nied_oyama
+from utils import line_notify, NUM_FOLDS, FEATS_EXCLUDED
 
 # 日本語表示用の設定
 font_path = '/usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf'
@@ -75,7 +75,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     oof_preds = np.zeros(train_df.shape[0])
     sub_preds = np.zeros(test_df.shape[0])
     feature_importance_df = pd.DataFrame()
-    feats = [f for f in train_df.columns if f not in ['index', 'datetime', 'visitors', 'year', 'park', 'weekofyear', 'month']]
+    feats = [f for f in train_df.columns if f not in FEATS_EXCLUDED]
 
     # k-fold
     for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
@@ -100,15 +100,15 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                 'metric': 'rmse',
                 'num_iteration': 10000,
                 'learning_rate': 0.02,
-                'num_leaves': 31,
-                'colsample_bytree': 0.9,
-                'subsample': 0.9,
-#                'max_depth': 10,
-#                'reg_alpha': 8.7511002653,
-#                'reg_lambda': 2.2602432486,
-#                'min_split_gain': 0.0503376564,
-#                'min_child_weight': 45,
-#                'min_data_in_leaf': 23,
+                'num_leaves': 45,
+                'colsample_bytree': 0.255300563244031,
+                'subsample': 0.971446335317484,
+                'max_depth': 5,
+                'reg_alpha': 9.69920532107852,
+                'reg_lambda': 8.55533064547731,
+                'min_split_gain': 0.488845073471382,
+                'min_child_weight': 2.45983954477549,
+                'min_data_in_leaf': 22,
                 'verbose': -1,
                 'seed':int(2**n_fold),
                 'bagging_seed':int(2**n_fold),
@@ -164,8 +164,12 @@ def main(debug = False):
         df = pd.merge(df, hotlink(num_rows), on='datetime', how='outer')
     with timer("colopl"):
         df = pd.merge(df, colopl(num_rows), on=['year','month'], how='outer')
-        print("df shape:", df.shape)
+    with timer("weather"):
+        df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
+    with timer("nied_oyama"):
+        df = pd.merge(df, nied_oyama(num_rows), on=['datetime', 'park'], how='outer')
     with timer("Run LightGBM with kfold"):
+        print("df shape:", df.shape)
         feat_importance = kfold_lightgbm(df, num_folds=NUM_FOLDS, stratified=True, debug=debug)
         display_importances(feat_importance ,'../output/lgbm_importances.png', '../output/feature_importance_lgbm.csv')
 
