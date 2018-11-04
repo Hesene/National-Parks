@@ -78,7 +78,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     feats = [f for f in train_df.columns if f not in FEATS_EXCLUDED]
 
     # k-fold
-    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['weekday'])):
+    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
         train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
         valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
 

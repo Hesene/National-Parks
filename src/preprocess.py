@@ -12,6 +12,49 @@ from utils import one_hot_encoder, PARK_POINT, PARKS
 # get_train_dataやget_test_dataのように、学習用と評価用を分けて、前処理を行う関数を定義してください。
 ################################################################################
 
+# 日本の休日
+def getJapaneseHolidays(dates):
+    japanese_holiday = dates.dt.date.apply(is_holiday).astype(int)
+
+    # 祝日データに土日を追加
+    japanese_holiday += (dates.dt.weekday==5).astype(int)
+    japanese_holiday += (dates.dt.weekday==6).astype(int)
+
+    # 年末年始の6日間を休日に変更
+    japanese_holiday += ((dates.dt.month==12)&(dates.dt.day==29)&(japanese_holiday==0)).astype(int)
+    japanese_holiday += ((dates.dt.month==12)&(dates.dt.day==30)&(japanese_holiday==0)).astype(int)
+    japanese_holiday += ((dates.dt.month==12)&(dates.dt.day==31)&(japanese_holiday==0)).astype(int)
+
+    japanese_holiday += ((dates.dt.month==1)&(dates.dt.day==1)&(japanese_holiday==0)).astype(int)
+    japanese_holiday += ((dates.dt.month==1)&(dates.dt.day==2)&(japanese_holiday==0)).astype(int)
+    japanese_holiday += ((dates.dt.month==1)&(dates.dt.day==3)&(japanese_holiday==0)).astype(int)
+
+    return japanese_holiday
+
+# 連休数
+def getNumHolidays(holidays):
+    holiday1 = [holidays[0]]
+    holiday2 = [holidays[-1]]
+    for i, h in enumerate(holidays[1:]):
+        if h==0:
+            holiday1.append(0)
+        else:
+            holiday1.append(holiday1[i]+h)
+
+    for i, h in enumerate(list(reversed(holidays))[1:]):
+        if h==0:
+            holiday2.append(0)
+        else:
+            holiday2.append(holiday2[i]+h)
+
+    np.array(holiday1)+np.array(list(reversed(holiday2)))-1
+
+    numholidays =pd.Series(np.array(holiday1)+
+                           np.array(list(reversed(holiday2)))-1,
+                           index=holidays.index).replace(-1,0)
+
+    return numholidays
+
 # Preprocess train.tsv and test.tsv
 def train_test(num_rows=None):
     print("Loading datasets...")
@@ -33,7 +76,11 @@ def train_test(num_rows=None):
     df['datetime'] = pd.to_datetime(df['datetime'])
 
     # 日本の祝日データを追加
-    df['japanese_holiday'] = df['datetime'].dt.date.apply(is_holiday).astype(int)
+    df['japanese_holiday'] = getJapaneseHolidays(df['datetime'])
+
+    # 連休数のファクターを生成
+    holidays = df.groupby('datetime')['japanese_holiday'].mean().replace(2,1)
+    df['num_holidays'] = df['datetime'].map(getNumHolidays(holidays))
 
     # 季節性の特徴量を追加
     df['day'] = df['datetime'].dt.day.astype(object)
@@ -46,10 +93,6 @@ def train_test(num_rows=None):
     df['month_weekday'] = df['month'].astype(str)+'_'+df['weekday'].astype(str)
     df['month_weekofyear'] = df['month'].astype(str)+'_'+df['weekofyear'].astype(str)
 #    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
-
-    # 祝日データに土日を追加
-    df['japanese_holiday'] += (df['weekday']==5).astype(int)
-    df['japanese_holiday'] += (df['weekday']==6).astype(int)
 
     df['park_day'] = df['park'].astype(str)+'_'+df['day'].astype(str)
     df['park_month'] = df['park'].astype(str)+'_'+df['month'].astype(str)
@@ -66,9 +109,7 @@ def train_test(num_rows=None):
     df_res['weekday'] = df['weekday'].astype(int)
     df_res['year'] = df['datetime'].dt.year.astype(int)
     df_res['month'] = df['datetime'].dt.month.astype(int)
-
-    # TODO: # 前後5日間の連休日数の特徴量
-#    df_res['consecutive_holidays']
+    df_res['park_month'], _ = pd.factorize(df['park_month'])
 
     return df_res
 
