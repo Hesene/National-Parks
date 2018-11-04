@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import gc
 
+from jpholiday import is_holiday
+
 from utils import one_hot_encoder, PARK_POINT, PARKS
 
 ################################################################################
@@ -30,22 +32,30 @@ def train_test(num_rows=None):
     # 日付をdatetime型へ変換
     df['datetime'] = pd.to_datetime(df['datetime'])
 
+    # 日本の祝日データを追加
+    df['japanese_holiday'] = df['datetime'].dt.date.apply(is_holiday).astype(int)
+
     # 季節性の特徴量を追加
     df['day'] = df['datetime'].dt.day.astype(object)
     df['month'] = df['datetime'].dt.month.astype(object)
     df['weekday'] = df['datetime'].dt.weekday.astype(object)
     df['weekofyear'] = df['datetime'].dt.weekofyear.astype(object)
-    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
+#    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
     df['day_weekday'] = df['day'].astype(str)+'_'+df['weekday'].astype(str)
-    df['day_weekofyear'] = df['day'].astype(str)+'_'+df['weekofyear'].astype(str)
+#    df['day_weekofyear'] = df['day'].astype(str)+'_'+df['weekofyear'].astype(str)
     df['month_weekday'] = df['month'].astype(str)+'_'+df['weekday'].astype(str)
     df['month_weekofyear'] = df['month'].astype(str)+'_'+df['weekofyear'].astype(str)
-    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
+#    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
+
+    # 祝日データに土日を追加
+    df['japanese_holiday'] += (df['weekday']==5).astype(int)
+    df['japanese_holiday'] += (df['weekday']==6).astype(int)
 
     df['park_day'] = df['park'].astype(str)+'_'+df['day'].astype(str)
     df['park_month'] = df['park'].astype(str)+'_'+df['month'].astype(str)
     df['park_weekday'] = df['park'].astype(str)+'_'+df['weekday'].astype(str)
-    df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['park_japanese_holiday'] = df['park'].astype(str)+'_'+df['japanese_holiday'].astype(str)
+#    df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
 
     # categorical変数を変換
     df_res, cat_cols = one_hot_encoder(df, nan_as_category=False)
@@ -53,8 +63,12 @@ def train_test(num_rows=None):
     # stratify & mearge用
     df_res['park'] = df['park']
     df_res['weekofyear'] = df['weekofyear'].astype(int)
+    df_res['weekday'] = df['weekday'].astype(int)
     df_res['year'] = df['datetime'].dt.year.astype(int)
     df_res['month'] = df['datetime'].dt.month.astype(int)
+
+    # TODO: # 前後5日間の連休日数の特徴量
+#    df_res['consecutive_holidays']
 
     return df_res
 

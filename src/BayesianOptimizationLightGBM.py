@@ -20,7 +20,7 @@ DF = train_test(NUM_ROWS)
 DF = pd.merge(DF, nightley(NUM_ROWS), on=['datetime', 'park'], how='outer')
 DF = pd.merge(DF, hotlink(NUM_ROWS), on='datetime', how='outer')
 DF = pd.merge(DF, colopl(NUM_ROWS), on=['year','month'], how='outer')
-DF = pd.merge(DF, weather(NUM_ROWS), on=['datetime', 'park'], how='outer')
+#DF = pd.merge(DF, weather(NUM_ROWS), on=['datetime', 'park'], how='outer')
 DF = pd.merge(DF, nied_oyama(NUM_ROWS), on=['datetime', 'park'], how='outer')
 
 # split test & train
@@ -80,7 +80,7 @@ def lgbm_eval(num_leaves,
 def main():
 
     # clf for bayesian optimization
-    clf_bo = BayesianOptimization(lgbm_eval, {'num_leaves': (32, 128),
+    clf_bo = BayesianOptimization(lgbm_eval, {'num_leaves': (16, 64),
                                               'colsample_bytree': (0.001, 1),
                                               'subsample': (0.001, 1),
                                               'max_depth': (3, 8),
@@ -88,7 +88,7 @@ def main():
                                               'reg_lambda': (0, 10),
                                               'min_split_gain': (0, 1),
                                               'min_child_weight': (0, 45),
-                                              'min_data_in_leaf': (0, 1000),
+                                              'min_data_in_leaf': (0, 500),
                                               })
 
     clf_bo.maximize(init_points=15, n_iter=25)

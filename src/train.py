@@ -78,7 +78,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     feats = [f for f in train_df.columns if f not in FEATS_EXCLUDED]
 
     # k-fold
-    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
+    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['weekday'])):
         train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
         valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
 
@@ -99,16 +99,16 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                 'objective': 'regression',
                 'metric': 'rmse',
                 'num_iteration': 10000,
-                'learning_rate': 0.02,
-                'num_leaves': 45,
-                'colsample_bytree': 0.255300563244031,
-                'subsample': 0.971446335317484,
-                'max_depth': 5,
-                'reg_alpha': 9.69920532107852,
-                'reg_lambda': 8.55533064547731,
-                'min_split_gain': 0.488845073471382,
-                'min_child_weight': 2.45983954477549,
-                'min_data_in_leaf': 22,
+                'learning_rate': 0.01,
+                'num_leaves': 34,
+                'colsample_bytree': 0.696105063062759,
+                'subsample': 0.192406104717957,
+                'max_depth': 6,
+                'reg_alpha': 0.861354259604706,
+                'reg_lambda': 9.88553004485405,
+                'min_split_gain': 0.492237623971434,
+                'min_child_weight': 0.029290300070058,
+                'min_data_in_leaf': 3,
                 'verbose': -1,
                 'seed':int(2**n_fold),
                 'bagging_seed':int(2**n_fold),
@@ -164,8 +164,8 @@ def main(debug = False):
         df = pd.merge(df, hotlink(num_rows), on='datetime', how='outer')
     with timer("colopl"):
         df = pd.merge(df, colopl(num_rows), on=['year','month'], how='outer')
-    with timer("weather"):
-        df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
+#    with timer("weather"):
+#        df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
     with timer("nied_oyama"):
         df = pd.merge(df, nied_oyama(num_rows), on=['datetime', 'park'], how='outer')
     with timer("Run LightGBM with kfold"):

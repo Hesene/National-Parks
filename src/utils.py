@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import requests
 
-NUM_FOLDS = 10
+NUM_FOLDS = 5
 
 PARKS= {
         '阿寒摩周国立公園': 'AKAN',
@@ -32,7 +32,7 @@ PARK_POINT = {
             '日光': '日光国立公園'
             }
 
-FEATS_EXCLUDED = ['index', 'datetime', 'visitors', 'year', 'park', 'weekofyear', 'month']
+FEATS_EXCLUDED = ['index', 'datetime', 'visitors', 'year', 'park', 'weekofyear', 'month', 'weekday']
 
 # One-hot encoding for categorical columns with get_dummies
 def one_hot_encoder(df, nan_as_category = True):
