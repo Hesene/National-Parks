@@ -67,9 +67,9 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
 
     # Cross validation model
     if stratified:
-        folds = StratifiedKFold(n_splits= num_folds, shuffle=True, random_state=47)
+        folds = StratifiedKFold(n_splits= num_folds, shuffle=True, random_state=326)
     else:
-        folds = KFold(n_splits= num_folds, shuffle=True, random_state=47)
+        folds = KFold(n_splits= num_folds, shuffle=True, random_state=326)
 
     # Create arrays and dataframes to store results
     oof_preds = np.zeros(train_df.shape[0])

@@ -14,7 +14,6 @@ from utils import FEATS_EXCLUDED, NUM_FOLDS
 # https://www.kaggle.com/tilii7/olivier-lightgbm-parameters-by-bayesian-opt/code
 
 NUM_ROWS=None
-USE_CSV=True
 
 DF = train_test(NUM_ROWS)
 DF = pd.merge(DF, nightley(NUM_ROWS), on=['datetime', 'park'], how='outer')

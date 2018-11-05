@@ -21,6 +21,7 @@ def getJapaneseHolidays(dates):
     japanese_holiday += (dates.dt.weekday==6).astype(int)
 
     # 年末年始の6日間を休日に変更
+    japanese_holiday += ((dates.dt.month==12)&(dates.dt.day==28)&(japanese_holiday==0)).astype(int)
     japanese_holiday += ((dates.dt.month==12)&(dates.dt.day==29)&(japanese_holiday==0)).astype(int)
     japanese_holiday += ((dates.dt.month==12)&(dates.dt.day==30)&(japanese_holiday==0)).astype(int)
     japanese_holiday += ((dates.dt.month==12)&(dates.dt.day==31)&(japanese_holiday==0)).astype(int)
@@ -28,8 +29,17 @@ def getJapaneseHolidays(dates):
     japanese_holiday += ((dates.dt.month==1)&(dates.dt.day==1)&(japanese_holiday==0)).astype(int)
     japanese_holiday += ((dates.dt.month==1)&(dates.dt.day==2)&(japanese_holiday==0)).astype(int)
     japanese_holiday += ((dates.dt.month==1)&(dates.dt.day==3)&(japanese_holiday==0)).astype(int)
+    japanese_holiday += ((dates.dt.month==1)&(dates.dt.day==4)&(japanese_holiday==0)).astype(int)
 
     return japanese_holiday
+
+# 休みの谷間の平日を休日として埋める
+def fillHolidays(holidays):
+    for i, h in enumerate(holidays):
+        if h==0:
+            if holidays[i-1]==1 & holidays[i+1]==1:
+                holidays[i]==1
+    return holidays
 
 # 連休数
 def getNumHolidays(holidays):
@@ -80,6 +90,7 @@ def train_test(num_rows=None):
 
     # 連休数のファクターを生成
     holidays = df.groupby('datetime')['japanese_holiday'].mean().replace(2,1)
+    holidays = fillHolidays(holidays) # 休日の谷間の平日を休日にする
     df['num_holidays'] = df['datetime'].map(getNumHolidays(holidays))
 
     # 季節性の特徴量を追加
@@ -110,6 +121,7 @@ def train_test(num_rows=None):
     df_res['year'] = df['datetime'].dt.year.astype(int)
     df_res['month'] = df['datetime'].dt.month.astype(int)
     df_res['park_month'], _ = pd.factorize(df['park_month'])
+    df_res['ISESHIMA_summit'] = ((df['park']=='伊勢志摩国立公園')&df['japanese_holiday']&('2016-5-27'>df['datetime'])&(df['datetime']>'2015-6-5')).astype(int) # 2016年伊勢島サミット開催決定後の休日フラグ
 
     return df_res
 
@@ -137,16 +149,27 @@ def hotlink(num_rows=None):
     hotlink = pd.read_csv('../input/hotlink.tsv', sep='\t')
 
     # aggregate by datetime & keyword
-    hotlink = hotlink.pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
+    hotlink_bbs = hotlink[hotlink.domain=='bbs'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
+    hotlink_twitter = hotlink[hotlink.domain=='twitter_sampling'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
+    hotlink_blog = hotlink[hotlink.domain=='blog'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
 
     # indexをdatetime型に変換
-    hotlink.index = pd.to_datetime(hotlink.index)
+    hotlink_bbs.index = pd.to_datetime(hotlink_bbs.index)
+    hotlink_twitter.index = pd.to_datetime(hotlink_twitter.index)
+    hotlink_blog.index = pd.to_datetime(hotlink_blog.index)
 
     # 1日先へシフト
-    hotlink = hotlink.shift()
+    hotlink_bbs = hotlink_bbs.shift()
+    hotlink_twitter = hotlink_twitter.shift()
+    hotlink_blog = hotlink_blog.shift()
 
     # カラム名を変更
-    hotlink.columns = ['HOTLINK_'+ c for c in hotlink.columns]
+    hotlink_bbs.columns = ['HOTLINK_BBS_'+ c for c in hotlink_bbs.columns]
+    hotlink_twitter.columns = ['HOTLINK_TWITTER_'+ c for c in hotlink_twitter.columns]
+    hotlink_blog.columns = ['HOTLINK_BLOG_'+ c for c in hotlink_blog.columns]
+
+    # merge
+    hotlink = pd.concat([hotlink_bbs, hotlink_twitter, hotlink_blog], axis=1)
 
     return hotlink
 
