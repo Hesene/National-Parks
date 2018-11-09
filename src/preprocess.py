@@ -90,7 +90,7 @@ def train_test(num_rows=None):
 
     # 連休数のファクターを生成
     holidays = df.groupby('datetime')['japanese_holiday'].mean().replace(2,1)
-    holidays = fillHolidays(holidays) # 休日の谷間の平日を休日にする
+    holidays = fillHolidays(holidays).replace(2,1) # 休日の谷間の平日を休日にする
     df['num_holidays'] = df['datetime'].map(getNumHolidays(holidays))
 
     # 季節性の特徴量を追加
@@ -99,13 +99,13 @@ def train_test(num_rows=None):
     df['weekday'] = df['datetime'].dt.weekday.astype(object)
     df['weekofyear'] = df['datetime'].dt.weekofyear.astype(object)
 #    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
-    df['day_weekday'] = df['day'].astype(str)+'_'+df['weekday'].astype(str)
+#    df['day_weekday'] = df['day'].astype(str)+'_'+df['weekday'].astype(str)
 #    df['day_weekofyear'] = df['day'].astype(str)+'_'+df['weekofyear'].astype(str)
     df['month_weekday'] = df['month'].astype(str)+'_'+df['weekday'].astype(str)
     df['month_weekofyear'] = df['month'].astype(str)+'_'+df['weekofyear'].astype(str)
 #    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
 
-    df['park_day'] = df['park'].astype(str)+'_'+df['day'].astype(str)
+#    df['park_day'] = df['park'].astype(str)+'_'+df['day'].astype(str)
     df['park_month'] = df['park'].astype(str)+'_'+df['month'].astype(str)
     df['park_weekday'] = df['park'].astype(str)+'_'+df['weekday'].astype(str)
     df['park_japanese_holiday'] = df['park'].astype(str)+'_'+df['japanese_holiday'].astype(str)
@@ -241,6 +241,12 @@ def weather(num_rows=None):
 # Preprocess jorudan.tsv
 def jorudan(num_rows=None):
     jorudan = pd.read_csv('../input/jorudan.tsv', sep='\t')
+
+    # 日付をdatetime型へ変換
+    jorudan['access_date'] = pd.to_datetime(jorudan['access_date'])
+    jorudan['datetime'] = pd.to_datetime(jorudan['departure_and_arrival_date'])
+
+    # TODO: ここの処理
 
     return weather
 

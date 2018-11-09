@@ -19,7 +19,7 @@ DF = train_test(NUM_ROWS)
 DF = pd.merge(DF, nightley(NUM_ROWS), on=['datetime', 'park'], how='outer')
 DF = pd.merge(DF, hotlink(NUM_ROWS), on='datetime', how='outer')
 DF = pd.merge(DF, colopl(NUM_ROWS), on=['year','month'], how='outer')
-#DF = pd.merge(DF, weather(NUM_ROWS), on=['datetime', 'park'], how='outer')
+DF = pd.merge(DF, weather(NUM_ROWS), on=['datetime', 'park'], how='outer')
 DF = pd.merge(DF, nied_oyama(NUM_ROWS), on=['datetime', 'park'], how='outer')
 
 # split test & train
@@ -90,7 +90,7 @@ def main():
                                               'min_data_in_leaf': (0, 500),
                                               })
 
-    clf_bo.maximize(init_points=15, n_iter=25)
+    clf_bo.maximize(init_points=30, n_iter=50)
 
     res = pd.DataFrame(clf_bo.res['max']['max_params'], index=['max_params'])
 
