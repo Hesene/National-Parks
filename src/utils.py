@@ -4,7 +4,7 @@ import numpy as np
 import requests
 import pickle
 
-NUM_FOLDS = 5
+NUM_FOLDS = 10
 
 PARKS= {
         '阿寒摩周国立公園': 'AKAN',

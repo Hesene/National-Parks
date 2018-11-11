@@ -122,7 +122,7 @@ def train_test(num_rows=None):
     df_res['year'] = df['datetime'].dt.year.astype(int)
     df_res['month'] = df['datetime'].dt.month.astype(int)
     df_res['park_month'], _ = pd.factorize(df['park_month'])
-    df_res['ISESHIMA_summit'] = ((df['park']=='伊勢志摩国立公園')&df['japanese_holiday']&('2016-5-27'>df['datetime'])&(df['datetime']>'2015-6-5')).astype(int) # 2016年伊勢島サミット開催決定後の休日フラグ
+#    df_res['ISESHIMA_summit'] = ((df['park']=='伊勢志摩国立公園')&df['japanese_holiday']&('2016-5-27'>df['datetime'])&(df['datetime']>'2015-6-5')).astype(int) # 2016年伊勢島サミット開催決定後の休日フラグ
 
     return df_res
 

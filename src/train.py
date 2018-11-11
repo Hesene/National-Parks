@@ -61,26 +61,26 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     del df
     gc.collect()
 
-    ############################################################################
-    # Prediction with all parks
-    ############################################################################
+    # save pkl
+    save2pkl('../output/train_df.pkl', train_df)
+    save2pkl('../output/test_df.pkl', test_df)
 
     # Cross validation model
     if stratified:
-        folds_all = StratifiedKFold(n_splits= num_folds, shuffle=True, random_state=326)
+        folds = StratifiedKFold(n_splits= num_folds, shuffle=True, random_state=47)
     else:
-        folds_all = KFold(n_splits= num_folds, shuffle=True, random_state=326)
+        folds = KFold(n_splits= num_folds, shuffle=True, random_state=47)
 
     # Create arrays and dataframes to store results
-    oof_preds_all = np.zeros(train_df.shape[0])
-    sub_preds_all = np.zeros(test_df.shape[0])
-    feature_importance_df_all = pd.DataFrame()
-    feats_all = [f for f in train_df.columns if f not in FEATS_EXCLUDED]
+    oof_preds = np.zeros(train_df.shape[0])
+    sub_preds = np.zeros(test_df.shape[0])
+    feature_importance_df = pd.DataFrame()
+    feats = [f for f in train_df.columns if f not in FEATS_EXCLUDED]
 
     # k-fold
-    for n_fold, (train_idx, valid_idx) in enumerate(folds_all.split(train_df[feats_all], train_df['park'])):
-        train_x, train_y = train_df[feats_all].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
-        valid_x, valid_y = train_df[feats_all].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
+    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
+        train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
+        valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
 
         # set data structure
         lgb_train = lgb.Dataset(train_x,
@@ -125,145 +125,34 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                         )
 
         # save model
-        reg.save_model('../output/lgbm_all_'+str(n_fold)+'.txt')
+        reg.save_model('../output/lgbm_'+str(n_fold)+'.txt')
 
-        oof_preds_all[valid_idx] = np.expm1(reg.predict(valid_x, num_iteration=reg.best_iteration))
-        sub_preds_all += np.expm1(reg.predict(test_df[feats_all], num_iteration=reg.best_iteration)) / folds_all.n_splits
+        oof_preds[valid_idx] = np.expm1(reg.predict(valid_x, num_iteration=reg.best_iteration))
+        sub_preds += np.expm1(reg.predict(test_df[feats], num_iteration=reg.best_iteration)) / folds.n_splits
 
         fold_importance_df = pd.DataFrame()
-        fold_importance_df["feature"] = feats_all
+        fold_importance_df["feature"] = feats
         fold_importance_df["importance"] = np.log1p(reg.feature_importance(importance_type='gain', iteration=reg.best_iteration))
         fold_importance_df["fold"] = n_fold + 1
-        feature_importance_df_all = pd.concat([feature_importance_df_all, fold_importance_df], axis=0)
-        print('Fold %2d MAE : %.6f' % (n_fold + 1, mean_absolute_error(np.expm1(valid_y), oof_preds_all[valid_idx])))
+        feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
+        print('Fold %2d MAE : %.6f' % (n_fold + 1, mean_absolute_error(np.expm1(valid_y), oof_preds[valid_idx])))
         del reg, train_x, train_y, valid_x, valid_y
         gc.collect()
 
     # Full MAEスコアの表示&LINE通知
-    full_mae_all = mean_absolute_error(train_df['visitors'], oof_preds_all)
-    line_notify('Full MAE score (All parks) %.6f' % full_mae_all)
-
-    # importanceのplot
-    display_importances(feature_importance_df_all ,
-                        '../output/lgbm_importances_all.png',
-                        '../output/feature_importance_lgbm_all.csv')
-
-    # 全体モデルの予測値を追加
-    train_df.loc[:,'pred'] = oof_preds_all
-    test_df.loc[:,'pred'] = sub_preds_all
-
-    feats_park = [f for f in train_df.columns if f not in FEATS_EXCLUDED and 'park' not in f]
-
-    # save pkl
-    save2pkl('../output/train_df.pkl', train_df)
-    save2pkl('../output/test_df.pkl', test_df)
-
-    ############################################################################
-    # Prediction for individual parks
-    ############################################################################
-
-    for park, name in zip(PARKS.keys(), PARKS.values()):
-
-        # define new train & test df
-        train_df_park = train_df[train_df['park']==park]
-        test_df_park = test_df[test_df['park']==park]
-
-        # Cross validation model
-        if stratified:
-            folds_park = StratifiedKFold(n_splits= num_folds, shuffle=True, random_state=326)
-        else:
-            folds_park = KFold(n_splits= num_folds, shuffle=True, random_state=326)
-
-        # Create arrays and dataframes to store results
-        oof_preds_park = np.zeros(train_df_park.shape[0])
-        sub_preds_park = np.zeros(test_df_park.shape[0])
-        feature_importance_df_park = pd.DataFrame()
-
-        # k-fold
-        for n_fold, (train_idx, valid_idx) in enumerate(folds_all.split(train_df_park[feats_all], train_df_park['year'])):
-            train_x, train_y = train_df_park[feats_park].iloc[train_idx], np.log1p(train_df_park['visitors'].iloc[train_idx])
-            valid_x, valid_y = train_df[feats_park].iloc[valid_idx], np.log1p(train_df_park['visitors'].iloc[valid_idx])
-
-            # set data structure
-            lgb_train = lgb.Dataset(train_x,
-                                    label=train_y,
-                                    free_raw_data=False)
-            lgb_test = lgb.Dataset(valid_x,
-                                   label=valid_y,
-                                   free_raw_data=False)
-
-            # パラメータは適当です
-            params ={
-                    'device' : 'gpu',
-    #                'gpu_use_dp':True,
-                    'task': 'train',
-                    'boosting': 'gbdt',
-                    'objective': 'regression',
-                    'metric': 'rmse',
-                    'learning_rate': 0.01,
-                    'num_leaves': 36,
-                    'colsample_bytree': 0.907577524401536,
-                    'subsample': 0.477278496453654,
-                    'max_depth': 8,
-                    'reg_alpha': 0.551050605741253,
-                    'reg_lambda': 1.18408435709489,
-                    'min_split_gain': 0.042435321777754,
-                    'min_child_weight': 44.8346678422427,
-                    'min_data_in_leaf': 36,
-                    'verbose': -1,
-                    'seed':int(2**n_fold),
-                    'bagging_seed':int(2**n_fold),
-                    'drop_seed':int(2**n_fold)
-                    }
-
-            reg = lgb.train(
-                            params,
-                            lgb_train,
-                            valid_sets=[lgb_train, lgb_test],
-                            valid_names=['train', 'test'],
-                            num_boost_round=10000,
-                            early_stopping_rounds= 200,
-                            verbose_eval=100
-                            )
-
-            # save model
-            reg.save_model('../output/lgbm_'+name+'_'+str(n_fold)+'.txt')
-
-            oof_preds_park[valid_idx] = np.expm1(reg.predict(valid_x, num_iteration=reg.best_iteration))
-            sub_preds_park += np.expm1(reg.predict(test_df_park[feats_park], num_iteration=reg.best_iteration)) / folds_park.n_splits
-
-            fold_importance_df = pd.DataFrame()
-            fold_importance_df["feature"] = feats_park
-            fold_importance_df["importance"] = np.log1p(reg.feature_importance(importance_type='gain', iteration=reg.best_iteration))
-            fold_importance_df["fold"] = n_fold + 1
-            feature_importance_df_park = pd.concat([feature_importance_df_park, fold_importance_df], axis=0)
-            print('Fold %2d MAE : %.6f' % (n_fold + 1, mean_absolute_error(np.expm1(valid_y), oof_preds_park[valid_idx])))
-            del reg, train_x, train_y, valid_x, valid_y
-            gc.collect()
-
-        # importanceのplot
-        display_importances(feature_importance_df_park ,
-                            '../output/lgbm_importances_'+name+'.png',
-                            '../output/feature_importance_lgbm_'+name+'.csv')
-
-        # 予測値を保存
-        train_df.loc[train_df['park']==park,'OOF_PRED'] = oof_preds_park
-        test_df.loc[test_df['park']==park,'visitors'] = sub_preds_park
-
-        # Full MAEスコアの表示&LINE通知
-        full_mae_park = mean_absolute_error(train_df_park['visitors'], oof_preds_park)
-        line_notify('Park '+name+' Full MAE score %.6f' % full_mae_park)
+    full_mae = mean_absolute_error(train_df['visitors'], oof_preds)
+    line_notify('Full MAE score %.6f' % full_mae)
 
     if not debug:
-        # Full MAEスコアの表示&LINE通知
-        full_mae = mean_absolute_error(train_df['visitors'], train_df['OOF_PRED'])
-        line_notify('Full MAE score %.6f' % full_mae)
-
         # 提出データの予測値を保存
+        test_df.loc[:,'visitors'] = sub_preds
         test_df[['index', 'visitors']].sort_values('index').to_csv(submission_file_name, index=False, header=False, sep='\t')
 
         # out of foldの予測値を保存
+        train_df.loc[:,'OOF_PRED'] = oof_preds
         train_df[['index', 'OOF_PRED']].sort_values('index').to_csv(oof_file_name, index= False)
+
+    return feature_importance_df
 
 def main(debug=False, use_pkl=False):
     num_rows = 10000 if debug else None
@@ -290,7 +179,8 @@ def main(debug=False, use_pkl=False):
             save2pkl('../output/df.pkl', df)
     with timer("Run LightGBM with kfold"):
         print("df shape:", df.shape)
-        kfold_lightgbm(df, num_folds=NUM_FOLDS, stratified=True, debug=debug)
+        feat_importance = kfold_lightgbm(df, num_folds=NUM_FOLDS, stratified=True, debug=debug)
+        display_importances(feat_importance ,'../output/lgbm_importances.png', '../output/feature_importance_lgbm.csv')
 
 if __name__ == "__main__":
     submission_file_name = "../output/submission.tsv"
