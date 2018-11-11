@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import requests
+import pickle
 
 NUM_FOLDS = 10
 
@@ -67,3 +68,13 @@ def line_notify(message):
     headers = {'Authorization': 'Bearer ' + line_notify_token}  # 発行したトークン
     line_notify = requests.post(line_notify_api, data=payload, headers=headers)
     print(message)
+
+def save2pkl(path, df):
+    f = open(path, 'wb')
+    pickle.dump(df, f)
+    f.close
+
+def loadpkl(path):
+    f = open(path, 'rb')
+    out = pickle.load(f)
+    return out

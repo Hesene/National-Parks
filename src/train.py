@@ -14,8 +14,8 @@ from matplotlib.font_manager import FontProperties
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold
 
-from preprocess import train_test, nightley, hotlink, colopl, weather, nied_oyama
-from utils import line_notify, NUM_FOLDS, FEATS_EXCLUDED
+from preprocess import train_test, nightley, hotlink, colopl, weather, nied_oyama, jorudan
+from utils import line_notify, NUM_FOLDS, FEATS_EXCLUDED, loadpkl, save2pkl
 
 # 日本語表示用の設定
 font_path = '/usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf'
@@ -154,20 +154,27 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
 
     return feature_importance_df
 
-def main(debug = False):
+def main(debug=False, use_pkl=False):
     num_rows = 10000 if debug else None
-    with timer("train & test"):
-        df = train_test(num_rows)
-    with timer("nightley"):
-        df = pd.merge(df, nightley(num_rows), on=['datetime', 'park'], how='outer')
-    with timer("hotlink"):
-        df = pd.merge(df, hotlink(num_rows), on='datetime', how='outer')
-    with timer("colopl"):
-        df = pd.merge(df, colopl(num_rows), on=['year','month'], how='outer')
-#    with timer("weather"):
-#        df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
-    with timer("nied_oyama"):
-        df = pd.merge(df, nied_oyama(num_rows), on=['datetime', 'park'], how='outer')
+    if use_pkl:
+        df = loadpkl('../output/df.pkl')
+    else:
+        with timer("train & test"):
+            df = train_test(num_rows)
+        with timer("nightley"):
+            df = pd.merge(df, nightley(num_rows), on=['datetime', 'park'], how='outer')
+        with timer("hotlink"):
+            df = pd.merge(df, hotlink(num_rows), on='datetime', how='outer')
+        with timer("colopl"):
+            df = pd.merge(df, colopl(num_rows), on=['year','month'], how='outer')
+    #    with timer("weather"):
+    #        df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
+        with timer("nied_oyama"):
+            df = pd.merge(df, nied_oyama(num_rows), on=['datetime', 'park'], how='outer')
+        with timer("jorudan"):
+            df = pd.merge(df, jorudan(num_rows), on=['datetime', 'park'], how='outer')
+        with timer("save pkl"):
+            save2pkl('../output/df.pkl', df)
     with timer("Run LightGBM with kfold"):
         print("df shape:", df.shape)
         feat_importance = kfold_lightgbm(df, num_folds=NUM_FOLDS, stratified=True, debug=debug)
@@ -177,4 +184,4 @@ if __name__ == "__main__":
     submission_file_name = "../output/submission.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
-        main(debug=False)
+        main(debug=False,use_pkl=False)

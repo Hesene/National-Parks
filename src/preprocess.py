@@ -240,15 +240,37 @@ def weather(num_rows=None):
 
 # Preprocess jorudan.tsv
 def jorudan(num_rows=None):
-    jorudan = pd.read_csv('../input/jorudan.tsv', sep='\t')
+    tmp_jorudan = pd.read_csv('../input/jorudan.tsv', sep='\t', nrows=num_rows)
 
     # 日付をdatetime型へ変換
-    jorudan['access_date'] = pd.to_datetime(jorudan['access_date'])
-    jorudan['datetime'] = pd.to_datetime(jorudan['departure_and_arrival_date'])
+#    tmp_jorudan['datetime'] = pd.to_datetime(tmp_jorudan['access_date'])
+    tmp_jorudan['datetime'] = pd.to_datetime(tmp_jorudan['departure_and_arrival_date'])
 
-    # TODO: ここの処理
+    # one-hot encoding
+    jorudan, cols = one_hot_encoder(tmp_jorudan[['departure_and_arrival_type',
+                                                 'departure_and_arrival_place_type',
+                                                 'departure_prefecture',
+                                                 'arrival_prefecture']],
+                                                 nan_as_category=False)
 
-    return weather
+    # 日付と公園名のカラムを追加
+    jorudan['park']=tmp_jorudan['park']
+    jorudan['datetime']=tmp_jorudan['datetime']
+
+    # 日付と公園名で集約
+    jorudan = jorudan.groupby(['park', 'datetime']).sum()
+
+    # １日前にシフト
+#    for park in tmp_jorudan['park'].unique().tolist():
+#        jorudan.loc[park, :] = jorudan[jorudan.loc[park, :]==park].shift()
+
+    # カラム名を変更
+    jorudan.columns = ['JORUDAN_'+ c for c in jorudan.columns]
+
+    del tmp_jorudan
+    gc.collect()
+
+    return jorudan
 
 if __name__ == '__main__':
     num_rows=10000
