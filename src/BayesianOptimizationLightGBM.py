@@ -6,21 +6,27 @@ import lightgbm
 from bayes_opt import BayesianOptimization
 from sklearn.model_selection import KFold, StratifiedKFold
 
-from preprocess import train_test, nightley, hotlink, colopl, weather, nied_oyama
-from utils import FEATS_EXCLUDED, NUM_FOLDS
+from preprocess import train_test, nightley, hotlink, colopl, weather, nied_oyama, jorudan, agoop
+from utils import FEATS_EXCLUDED, NUM_FOLDS, loadpkl
 
 # 以下参考
 # https://github.com/fmfn/BayesianOptimization
 # https://www.kaggle.com/tilii7/olivier-lightgbm-parameters-by-bayesian-opt/code
 
 NUM_ROWS=None
+USE_PKL=True
 
-DF = train_test(NUM_ROWS)
-DF = pd.merge(DF, nightley(NUM_ROWS), on=['datetime', 'park'], how='outer')
-DF = pd.merge(DF, hotlink(NUM_ROWS), on='datetime', how='outer')
-DF = pd.merge(DF, colopl(NUM_ROWS), on=['year','month'], how='outer')
-DF = pd.merge(DF, weather(NUM_ROWS), on=['datetime', 'park'], how='outer')
-DF = pd.merge(DF, nied_oyama(NUM_ROWS), on=['datetime', 'park'], how='outer')
+if USE_PKL:
+    DF = loadpkl('../output/df.pkl')
+else:
+    DF = train_test(NUM_ROWS)
+    DF = pd.merge(DF, nightley(NUM_ROWS), on=['datetime', 'park'], how='outer')
+    DF = pd.merge(DF, hotlink(NUM_ROWS), on='datetime', how='outer')
+    DF = pd.merge(DF, colopl(NUM_ROWS), on=['year','month'], how='outer')
+    DF = pd.merge(DF, weather(NUM_ROWS), on=['datetime', 'park'], how='outer')
+    DF = pd.merge(DF, nied_oyama(NUM_ROWS), on=['datetime', 'park'], how='outer')
+    DF = pd.merge(DF, agoop(num_rows), on=['park', 'year','month'], how='outer')
+    DF = pd.merge(DF, jorudan(num_rows), on=['datetime', 'park'], how='outer')
 
 # split test & train
 TRAIN_DF = DF[DF['visitors'].notnull()]

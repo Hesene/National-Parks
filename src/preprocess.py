@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import gc
+import os
 
 from jpholiday import is_holiday
 
@@ -135,11 +136,19 @@ def colopl(num_rows=None):
     # 月ごとに集計
     colopl = colopl.pivot_table(index=['year', 'month'], columns='country_jp', values='count', aggfunc=sum)
 
-    #　１ヶ月先へシフト
-    colopl = colopl.shift()
-
     # カラム名を変更
     colopl.columns = ['COLOPL_'+ c for c in colopl.columns]
+
+    # indexをreset
+    colopl=colopl.reset_index()
+
+    #　１ヶ月先へシフト
+    for i, (y, m) in enumerate(zip(colopl['month'], colopl['year'])):
+        if m==12:
+            colopl.loc[i,'month']-=11
+            colopl.loc[i,'year']+=1
+        else:
+            colopl.loc[i,'month']+=1
 
     return colopl
 
@@ -277,6 +286,44 @@ def jorudan(num_rows=None):
     gc.collect()
 
     return jorudan
+
+# Preprocess agoop.tsv
+def agoop(num_rows=None):
+
+    agoop =pd.DataFrame()
+
+    for filename in os.listdir('../input/agoop/'):
+        if 'month_time_mesh100m_' in filename:
+            # load tsv
+            tmp_agoop = pd.read_csv('../input/agoop/'+filename, sep='\t')
+
+            # pivot tableで集約
+            tmp_agoop = tmp_agoop.pivot_table(index=['park', 'year', 'month'],
+                                              columns=['dayflag', 'hour'],
+                                              values='population', aggfunc=sum)
+
+            # カラム名を変更
+            tmp_agoop.columns = ['AGOOP_dayflag'+str(tup[0])+'_'+'hour'+str(tup[1]) for tup in tmp_agoop.columns.values]
+
+            # merge
+            agoop = agoop.append(tmp_agoop)
+
+            del tmp_agoop
+            gc.collect()
+
+            print(filename+' done.')
+
+    agoop = agoop.reset_index()
+
+    # １ヶ月先にシフト
+    for i, (y, m) in enumerate(zip(agoop['month'], agoop['year'])):
+        if m==12:
+            agoop.loc[i,'month']-=11
+            agoop.loc[i,'year']+=1
+        else:
+            agoop.loc[i,'month']+=1
+
+    return agoop
 
 if __name__ == '__main__':
     num_rows=10000
