@@ -143,12 +143,15 @@ def colopl(num_rows=None):
     colopl=colopl.reset_index()
 
     #　１ヶ月先へシフト
-    for i, (y, m) in enumerate(zip(colopl['month'], colopl['year'])):
+    for i, (y, m) in enumerate(zip(colopl['year'], colopl['month'])):
         if m==12:
             colopl.loc[i,'month']-=11
             colopl.loc[i,'year']+=1
         else:
             colopl.loc[i,'month']+=1
+
+    # 2018/1/1以降のデータを削除
+    colopl = colopl[colopl['year']<2018]
 
     return colopl
 
@@ -258,7 +261,7 @@ def jorudan(num_rows=None):
     # 当日以降のアクセスデータを削除
     tmp_jorudan = tmp_jorudan[tmp_jorudan['datetime']>tmp_jorudan['access_date']]
 
-    # 2017/12/31以降のデータを削除
+    # 2018/1/1以降のデータを削除
     tmp_jorudan = tmp_jorudan[tmp_jorudan['datetime']<'2018-01-01']
 
     # one-hot encoding
@@ -316,12 +319,15 @@ def agoop(num_rows=None):
     agoop = agoop.reset_index()
 
     # １ヶ月先にシフト
-    for i, (y, m) in enumerate(zip(agoop['month'], agoop['year'])):
+    for i, (y, m) in enumerate(zip(agoop['year'], agoop['month'])):
         if m==12:
             agoop.loc[i,'month']-=11
             agoop.loc[i,'year']+=1
         else:
             agoop.loc[i,'month']+=1
+
+    # 2018/1/1以降のデータを削除
+    agoop = agoop[agoop['year']<2018]
 
     return agoop
 

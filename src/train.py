@@ -260,10 +260,10 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
         line_notify('Full MAE score %.6f' % full_mae)
 
         # 提出データの予測値を保存
-        test_df[['index', 'visitors']].to_csv(submission_file_name, index=False, header=False, sep='\t')
+        test_df[['index', 'visitors']].sort_values('index').to_csv(submission_file_name, index=False, header=False, sep='\t')
 
         # out of foldの予測値を保存
-        train_df[['index', 'OOF_PRED']].to_csv(oof_file_name, index= False)
+        train_df[['index', 'OOF_PRED']].sort_values('index').to_csv(oof_file_name, index= False)
 
 def main(debug=False, use_pkl=False):
     num_rows = 10000 if debug else None
@@ -278,8 +278,8 @@ def main(debug=False, use_pkl=False):
             df = pd.merge(df, hotlink(num_rows), on='datetime', how='outer')
         with timer("colopl"):
             df = pd.merge(df, colopl(num_rows), on=['year','month'], how='outer')
-        with timer("weather"):
-            df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
+#        with timer("weather"):
+#            df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
         with timer("nied_oyama"):
             df = pd.merge(df, nied_oyama(num_rows), on=['datetime', 'park'], how='outer')
         with timer("agoop"):
