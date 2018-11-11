@@ -243,8 +243,14 @@ def jorudan(num_rows=None):
     tmp_jorudan = pd.read_csv('../input/jorudan.tsv', sep='\t', nrows=num_rows)
 
     # 日付をdatetime型へ変換
-#    tmp_jorudan['datetime'] = pd.to_datetime(tmp_jorudan['access_date'])
+    tmp_jorudan['access_date'] = pd.to_datetime(tmp_jorudan['access_date'])
     tmp_jorudan['datetime'] = pd.to_datetime(tmp_jorudan['departure_and_arrival_date'])
+
+    # 当日以降のアクセスデータを削除
+    tmp_jorudan = tmp_jorudan[tmp_jorudan['datetime']>tmp_jorudan['access_date']]
+
+    # 2017/12/31以降のデータを削除
+    tmp_jorudan = tmp_jorudan[tmp_jorudan['datetime']<'2018-01-01']
 
     # one-hot encoding
     jorudan, cols = one_hot_encoder(tmp_jorudan[['departure_and_arrival_type',
