@@ -78,7 +78,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     feats = [f for f in train_df.columns if f not in FEATS_EXCLUDED]
 
     # k-fold
-    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
+    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park_japanese_holiday'])):
         train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
         valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
 
@@ -99,15 +99,15 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                 'objective': 'regression',
                 'metric': 'rmse',
                 'learning_rate': 0.01,
-                'num_leaves': 36,
-                'colsample_bytree': 0.907577524401536,
-                'subsample': 0.477278496453654,
+                'num_leaves': 44,
+                'colsample_bytree': 0.695190781578034,
+                'subsample': 0.488562713025008,
                 'max_depth': 8,
-                'reg_alpha': 0.551050605741253,
-                'reg_lambda': 1.18408435709489,
-                'min_split_gain': 0.042435321777754,
-                'min_child_weight': 44.8346678422427,
-                'min_data_in_leaf': 36,
+                'reg_alpha': 0.048823648223605,
+                'reg_lambda': 1.1453903921195,
+                'min_split_gain': 0.019673304639706,
+                'min_child_weight': 0.403539896960081,
+                'min_data_in_leaf': 1,
                 'verbose': -1,
                 'seed':int(2**n_fold),
                 'bagging_seed':int(2**n_fold),
@@ -186,4 +186,4 @@ if __name__ == "__main__":
     submission_file_name = "../output/submission.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
-        main(debug=False,use_pkl=True)
+        main(debug=False,use_pkl=False)

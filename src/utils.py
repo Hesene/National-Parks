@@ -33,7 +33,8 @@ PARK_POINT = {
             '日光': '日光国立公園'
             }
 
-FEATS_EXCLUDED = ['index', 'datetime', 'visitors', 'year', 'park', 'weekofyear', 'month', 'weekday', 'park_month']
+FEATS_EXCLUDED = ['index', 'datetime', 'visitors', 'year', 'park', 'weekofyear',
+                  'month', 'weekday', 'park_month', 'park_japanese_holiday']
 
 # One-hot encoding for categorical columns with get_dummies
 def one_hot_encoder(df, nan_as_category = True):
