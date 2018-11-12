@@ -73,7 +73,7 @@ def lgbm_eval(num_leaves,
                       train_set=lgbm_train,
                       metrics=['rmse'],
                       nfold=NUM_FOLDS,
-                      folds=folds.split(TRAIN_DF[FEATS], TRAIN_DF['park']),
+                      folds=folds.split(TRAIN_DF[FEATS], TRAIN_DF['park_japanese_holiday']),
                       num_boost_round=10000, # early stopありなのでここは大きめの数字にしてます
                       early_stopping_rounds=200,
                       verbose_eval=100,

@@ -66,6 +66,26 @@ def getNumHolidays(holidays):
 
     return numholidays
 
+# GWのフラグ
+def getGoldenWeek(date):
+    gw  = ((date.dt.day==29)&(date.dt.month==4)).astype(int)
+    gw += ((date.dt.day==30)&(date.dt.month==4)).astype(int)
+    gw += ((date.dt.day==1)&(date.dt.month==5)).astype(int)
+    gw += ((date.dt.day==2)&(date.dt.month==5)).astype(int)
+    gw += ((date.dt.day==3)&(date.dt.month==5)).astype(int)
+    gw += ((date.dt.day==4)&(date.dt.month==5)).astype(int)
+    gw += ((date.dt.day==5)&(date.dt.month==5)).astype(int)
+    return gw
+
+# 年末年始のフラグ
+def getNewYearsDay(date):
+    nyd  = ((date.dt.day==30)&(date.dt.month==12)).astype(int)
+    nyd += ((date.dt.day==31)&(date.dt.month==12)).astype(int)
+    nyd += ((date.dt.day==1)&(date.dt.month==1)).astype(int)
+    nyd += ((date.dt.day==2)&(date.dt.month==1)).astype(int)
+    nyd += ((date.dt.day==3)&(date.dt.month==1)).astype(int)
+    return nyd
+
 # Preprocess train.tsv and test.tsv
 def train_test(num_rows=None):
     print("Loading datasets...")
@@ -87,7 +107,7 @@ def train_test(num_rows=None):
     df['datetime'] = pd.to_datetime(df['datetime'])
 
     # 日本の祝日データを追加
-    df['japanese_holiday'] = getJapaneseHolidays(df['datetime'])
+    df['japanese_holiday'] = getJapaneseHolidays(df['datetime']).replace(2,1)
 
     # 連休数のファクターを生成
     holidays = df.groupby('datetime')['japanese_holiday'].mean().replace(2,1)
@@ -105,12 +125,17 @@ def train_test(num_rows=None):
     df['month_weekday'] = df['month'].astype(str)+'_'+df['weekday'].astype(str)
     df['month_weekofyear'] = df['month'].astype(str)+'_'+df['weekofyear'].astype(str)
     df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['new_years_day'] = getNewYearsDay(df['datetime'])
+    df['golden_week'] = getGoldenWeek(df['datetime'])
 
     df['park_day'] = df['park'].astype(str)+'_'+df['day'].astype(str)
     df['park_month'] = df['park'].astype(str)+'_'+df['month'].astype(str)
     df['park_weekday'] = df['park'].astype(str)+'_'+df['weekday'].astype(str)
     df['park_japanese_holiday'] = df['park'].astype(str)+'_'+df['japanese_holiday'].astype(str)
     df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['park_num_holiday'] = df['park'].astype(str)+'_'+df['num_holidays'].astype(str)
+    df['park_new_years_day'] = df['park'].astype(str)+'_'+df['new_years_day'].astype(str)
+    df['park_golden_week'] = df['park'].astype(str)+'_'+df['golden_week'].astype(str)
 
     # categorical変数を変換
     df_res, cat_cols = one_hot_encoder(df, nan_as_category=False)
@@ -135,10 +160,17 @@ def colopl(num_rows=None):
     colopl['count'] = colopl['count'].replace('1-9', 5).astype(int)
 
     # 月ごとに集計
-    colopl = colopl.pivot_table(index=['year', 'month'], columns='country_jp', values='count', aggfunc=sum)
+    colopl = colopl.pivot_table(index=['park', 'year', 'month'], columns='country_jp', values='count', aggfunc=sum)
+
+    # 前月との差分データを追加
+#    colopl_diff = colopl.diff()
 
     # カラム名を変更
     colopl.columns = ['COLOPL_'+ c for c in colopl.columns]
+#    colopl_diff.columns = ['COLOPL_DIFF_'+ c for c in colopl_diff.columns]
+
+    # merge
+#    colopl = pd.concat([colopl, colopl_diff], axis=1)
 
     # indexをreset
     colopl=colopl.reset_index()
@@ -154,6 +186,9 @@ def colopl(num_rows=None):
     # 2018/1/1以降のデータを削除
     colopl = colopl[colopl['year']<2018]
 
+#    del colopl_diff
+    gc.collect()
+
     return colopl
 
 # Preprocess hotlink.tsv
@@ -162,27 +197,34 @@ def hotlink(num_rows=None):
     hotlink = pd.read_csv('../input/hotlink.tsv', sep='\t')
 
     # aggregate by datetime & keyword
+    hotlink_all = hotlink.pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
     hotlink_bbs = hotlink[hotlink.domain=='bbs'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
     hotlink_twitter = hotlink[hotlink.domain=='twitter_sampling'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
     hotlink_blog = hotlink[hotlink.domain=='blog'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
 
     # indexをdatetime型に変換
+    hotlink_all.index = pd.to_datetime(hotlink_all.index)
     hotlink_bbs.index = pd.to_datetime(hotlink_bbs.index)
     hotlink_twitter.index = pd.to_datetime(hotlink_twitter.index)
     hotlink_blog.index = pd.to_datetime(hotlink_blog.index)
 
     # 1日先へシフト
+    hotlink_all = hotlink_all.shift()
     hotlink_bbs = hotlink_bbs.shift()
     hotlink_twitter = hotlink_twitter.shift()
     hotlink_blog = hotlink_blog.shift()
 
     # カラム名を変更
+    hotlink_all.columns = ['HOTLINK_ALL_'+ c for c in hotlink_all.columns]
     hotlink_bbs.columns = ['HOTLINK_BBS_'+ c for c in hotlink_bbs.columns]
     hotlink_twitter.columns = ['HOTLINK_TWITTER_'+ c for c in hotlink_twitter.columns]
     hotlink_blog.columns = ['HOTLINK_BLOG_'+ c for c in hotlink_blog.columns]
 
     # merge
-    hotlink = pd.concat([hotlink_bbs, hotlink_twitter, hotlink_blog], axis=1)
+    hotlink = pd.concat([hotlink_all, hotlink_bbs, hotlink_twitter, hotlink_blog], axis=1)
+
+    del hotlink_all, hotlink_bbs, hotlink_twitter, hotlink_blog
+    gc.collect()
 
     return hotlink
 
@@ -279,9 +321,11 @@ def jorudan(num_rows=None):
     # 日付と公園名で集約
     jorudan = jorudan.groupby(['park', 'datetime']).sum()
 
-    # １日前にシフト
-#    for park in tmp_jorudan['park'].unique().tolist():
-#        jorudan.loc[park, :] = jorudan[jorudan.loc[park, :]==park].shift()
+    # 追加の特徴量
+    jorudan['departure_and_arrival_place_sum'] = jorudan['departure_and_arrival_place_type_A']+jorudan['departure_and_arrival_place_type_D']
+    jorudan['departure_and_arrival_type_sum'] = jorudan['departure_and_arrival_type_A']+jorudan['departure_and_arrival_type_D']
+    jorudan['departure_and_arrival_place_ratio'] = jorudan['departure_and_arrival_place_type_A']/jorudan['departure_and_arrival_place_type_D']
+    jorudan['departure_and_arrival_type_ratio'] = jorudan['departure_and_arrival_type_A']/jorudan['departure_and_arrival_type_D']
 
     # カラム名を変更
     jorudan.columns = ['JORUDAN_'+ c for c in jorudan.columns]
