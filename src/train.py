@@ -99,15 +99,15 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                 'objective': 'regression',
                 'metric': 'rmse',
                 'learning_rate': 0.01,
-                'num_leaves': 44,
-                'colsample_bytree': 0.695190781578034,
-                'subsample': 0.488562713025008,
+                'num_leaves': 32,
+                'colsample_bytree': 0.20461151519044,
+                'subsample': 0.805742797052828,
                 'max_depth': 10,
-                'reg_alpha': 0.048823648223605,
-                'reg_lambda': 1.1453903921195,
-                'min_split_gain': 0.019673304639706,
-                'min_child_weight': 0.403539896960081,
-                'min_data_in_leaf': 1,
+                'reg_alpha': 0.196466392224054,
+                'reg_lambda': 0.045887453950229,
+                'min_split_gain': 0.247050274075659,
+                'min_child_weight': 23.9202696807894,
+                'min_data_in_leaf': 24,
                 'verbose': -1,
                 'seed':int(2**n_fold),
                 'bagging_seed':int(2**n_fold),
@@ -186,4 +186,4 @@ if __name__ == "__main__":
     submission_file_name = "../output/submission.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
-        main(debug=False,use_pkl=False)
+        main(debug=False,use_pkl=True)
