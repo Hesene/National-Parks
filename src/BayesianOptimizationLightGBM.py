@@ -88,7 +88,7 @@ def main():
     clf_bo = BayesianOptimization(lgbm_eval, {'num_leaves': (16, 64),
                                               'colsample_bytree': (0.001, 1),
                                               'subsample': (0.001, 1),
-                                              'max_depth': (5, 10),
+                                              'max_depth': (8, 16),
                                               'reg_alpha': (0, 10),
                                               'reg_lambda': (0, 10),
                                               'min_split_gain': (0, 1),
