@@ -167,8 +167,8 @@ def main(debug=False, use_pkl=False):
             df = pd.merge(df, hotlink(num_rows), on='datetime', how='outer')
         with timer("colopl"):
             df = pd.merge(df, colopl(num_rows), on=['park', 'year', 'month'], how='outer')
-        with timer("weather"):
-            df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
+#        with timer("weather"):
+#            df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
         with timer("nied_oyama"):
             df = pd.merge(df, nied_oyama(num_rows), on=['datetime', 'park'], how='outer')
         with timer("agoop"):
