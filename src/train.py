@@ -11,6 +11,7 @@ import warnings
 
 from contextlib import contextmanager
 from matplotlib.font_manager import FontProperties
+from pandas.core.common import SettingWithCopyWarning
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import KFold, StratifiedKFold
 
@@ -27,7 +28,7 @@ matplotlib.rcParams['font.family'] = font_prop.get_name()
 # 学習済みモデルや特徴量、クロスバリデーションの評価結果を出力する関数も定義してください。
 ################################################################################
 
-warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=SettingWithCopyWarning)
 
 @contextmanager
 def timer(title):
@@ -78,7 +79,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     feats = [f for f in train_df.columns if f not in FEATS_EXCLUDED]
 
     # k-fold
-    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['num_holidays'])):
+    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
         train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
         valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
 
@@ -186,4 +187,4 @@ if __name__ == "__main__":
     submission_file_name = "../output/submission.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
-        main(debug=False,use_pkl=True)
+        main(debug=False,use_pkl=False)
