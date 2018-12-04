@@ -115,6 +115,22 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                 'drop_seed':int(2**n_fold)
                 }
 
+        """
+        Best trial:
+          Value: 0.9869144101862805
+          Params:
+            reg_alpha: 1.891291618502065
+            colsample_bytree: 0.4741037274946231
+            top_rate: 0.4532326958863251
+            reg_lambda: 2.2734181164369485
+            min_child_weight: 2.5545340440601834
+            other_rate: 0.11058794684331633
+            boosting: goss
+            subsample: 0.5940687519599184
+            num_leaves: 47
+            min_split_gain: 0.10707962306031509
+        """
+        
         reg = lgb.train(
                         params,
                         lgb_train,
