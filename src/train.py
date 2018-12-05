@@ -96,41 +96,27 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                 'device' : 'gpu',
 #                'gpu_use_dp':True,
                 'task': 'train',
-                'boosting': 'gbdt',
+                'boosting': 'goss',
                 'objective': 'regression',
                 'metric': 'rmse',
                 'learning_rate': 0.01,
-                'num_leaves': 32,
-                'colsample_bytree': 0.20461151519044,
-                'subsample': 0.805742797052828,
-                'max_depth': 10,
-                'reg_alpha': 0.196466392224054,
-                'reg_lambda': 0.045887453950229,
-                'min_split_gain': 0.247050274075659,
-                'min_child_weight': 23.9202696807894,
-                'min_data_in_leaf': 24,
+                'num_leaves': 47,
+                'colsample_bytree': 0.4741037274946231,
+                'subsample': 0.5940687519599184,
+#                'max_depth': 10,
+                'reg_alpha': 1.891291618502065,
+                'reg_lambda': 2.2734181164369485,
+                'min_split_gain': 0.10707962306031509,
+                'min_child_weight': 2.5545340440601834,
+#                'min_data_in_leaf': 24,
+                'top_rate': 0.4532326958863251, # for goss
+                'other_rate': 0.11058794684331633, # for goss
                 'verbose': -1,
                 'seed':int(2**n_fold),
                 'bagging_seed':int(2**n_fold),
                 'drop_seed':int(2**n_fold)
                 }
 
-        """
-        Best trial:
-          Value: 0.9869144101862805
-          Params:
-            reg_alpha: 1.891291618502065
-            colsample_bytree: 0.4741037274946231
-            top_rate: 0.4532326958863251
-            reg_lambda: 2.2734181164369485
-            min_child_weight: 2.5545340440601834
-            other_rate: 0.11058794684331633
-            boosting: goss
-            subsample: 0.5940687519599184
-            num_leaves: 47
-            min_split_gain: 0.10707962306031509
-        """
-        
         reg = lgb.train(
                         params,
                         lgb_train,
