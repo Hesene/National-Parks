@@ -12,9 +12,9 @@ import time
 import warnings
 
 from contextlib import contextmanager
-from keras import Input
-from keras.callbacks import EarlyStopping
-from keras.layers import Dense, Model
+from keras import Input, Model
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.layers import Dense
 from keras.optimizers import Adam
 from matplotlib.font_manager import FontProperties
 from pandas.core.common import SettingWithCopyWarning
@@ -88,37 +88,40 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
         reg = model_mlp(train_x.shape[1])
 
         # compile
-        model.compile(loss='mean_squared_error',
-                      optimizer=Adam(lr=3e-3)
-                      )
+        reg.compile(loss='mean_squared_error',
+                    optimizer=Adam(lr=3e-3),
+                    metrics=['mae'])
 
         # early stopping
-        early_stopping = EarlyStopping(monitor='val_my_iou_metric',
-                                       mode='max',
+        early_stopping = EarlyStopping(monitor='val_mae',
+                                       mode='min',
                                        patience=15,
                                        verbose=1)
 
-        reg = lgb.train(
-                        params,
-                        lgb_train,
-                        valid_sets=[lgb_train, lgb_test],
-                        valid_names=['train', 'test'],
-                        num_boost_round=10000,
-                        early_stopping_rounds= 200,
-                        verbose_eval=100
-                        )
+        # check point
+        model_checkpoint = ModelCheckpoint('../output/mlp_{}.model'.format(n_fold+1),
+                                           monitor='val_mae',
+                                           mode = 'min',
+                                           save_best_only=True,
+                                           verbose=1)
 
-        # save model
-        reg.save_model('../output/lgbm_'+str(n_fold)+'.txt')
+        epochs = 100
+        batch_size = 128
 
-        oof_preds[valid_idx] = np.expm1(reg.predict(valid_x, num_iteration=reg.best_iteration))
-        sub_preds += np.expm1(reg.predict(test_df[feats], num_iteration=reg.best_iteration)) / folds.n_splits
+        history = reg.fit(train_x, train_y,
+                          validation_data=[valid_x, valid_y],
+                          epochs=epochs,
+                          batch_size=batch_size,
+                          callbacks=[early_stopping, model_checkpoint],
+                          shuffle=True,
+                          verbose=1)
 
-        fold_importance_df = pd.DataFrame()
-        fold_importance_df["feature"] = feats
-        fold_importance_df["importance"] = np.log1p(reg.feature_importance(importance_type='gain', iteration=reg.best_iteration))
-        fold_importance_df["fold"] = n_fold + 1
-        feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
+        reg = load_model('../output/mlp_{}.model'.format(n_fold+1),
+                         custom_objects={'my_iou_metric': my_iou_metric})
+
+        oof_preds[valid_idx] = np.expm1(reg.predict(valid_x))
+        sub_preds += np.expm1(reg.predict(test_df[feats])) / folds.n_splits
+
         print('Fold %2d MAE : %.6f' % (n_fold + 1, mean_absolute_error(np.expm1(valid_y), oof_preds[valid_idx])))
         del reg, train_x, train_y, valid_x, valid_y
         gc.collect()
@@ -170,4 +173,4 @@ if __name__ == "__main__":
     submission_file_name = "../output/submission.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
-        main(debug=False,use_pkl=False)
+        main(debug=False,use_pkl=True)
