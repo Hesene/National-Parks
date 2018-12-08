@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from matplotlib.font_manager import FontProperties
 from pandas.core.common import SettingWithCopyWarning
 from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import KFold, StratifiedKFold
+from sklearn.model_selection import KFold, StratifiedKFold, TimeSeriesSplit
 
 from preprocess import train_test, nightley, hotlink, colopl, weather, nied_oyama, jorudan, agoop
 from utils import line_notify, NUM_FOLDS, FEATS_EXCLUDED, loadpkl, save2pkl, PARKS
@@ -67,10 +67,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     save2pkl('../output/test_df.pkl', test_df)
 
     # Cross validation model
-    if stratified:
-        folds = StratifiedKFold(n_splits= num_folds, shuffle=True, random_state=47)
-    else:
-        folds = KFold(n_splits= num_folds, shuffle=True, random_state=47)
+    folds = TimeSeriesSplit(n_splits=num_folds)
 
     # Create arrays and dataframes to store results
     oof_preds = np.zeros(train_df.shape[0])
@@ -189,4 +186,4 @@ if __name__ == "__main__":
     submission_file_name = "../output/submission.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
-        main(debug=False,use_pkl=False)
+        main(debug=False,use_pkl=True)
