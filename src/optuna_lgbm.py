@@ -72,7 +72,7 @@ def objective(trial):
                       train_set=lgbm_train,
                       metrics=['rmse'],
                       nfold=NUM_FOLDS,
-                      folds=folds.split(TRAIN_DF[FEATS], TRAIN_DF['park']),
+                      folds=folds.split(TRAIN_DF[FEATS], TRAIN_DF['park_japanese_holiday']),
                       num_boost_round=10000, # early stopありなのでここは大きめの数字にしてます
                       early_stopping_rounds=200,
                       verbose_eval=100,
@@ -80,7 +80,6 @@ def objective(trial):
                      )
     gc.collect()
     return clf['rmse-mean'][-1]
-
 
 if __name__ == '__main__':
     study = optuna.create_study()
@@ -96,3 +95,7 @@ if __name__ == '__main__':
     print('  Params: ')
     for key, value in trial.params.items():
         print('    {}: {}'.format(key, value))
+
+    # save result
+    hist_df = study.trials_dataframe()
+    hist_df.to_csv("../output/optuna_result_lgbm.csv")

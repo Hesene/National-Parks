@@ -29,6 +29,7 @@ matplotlib.rcParams['font.family'] = font_prop.get_name()
 ################################################################################
 
 warnings.simplefilter(action='ignore', category=SettingWithCopyWarning)
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 @contextmanager
 def timer(title):
@@ -67,7 +68,10 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     save2pkl('../output/test_df.pkl', test_df)
 
     # Cross validation model
-    folds = TimeSeriesSplit(n_splits=num_folds)
+    if stratified:
+        folds = StratifiedKFold(n_splits= num_folds, shuffle=True, random_state=47)
+    else:
+        folds = KFold(n_splits= num_folds, shuffle=True, random_state=47)
 
     # Create arrays and dataframes to store results
     oof_preds = np.zeros(train_df.shape[0])
@@ -76,7 +80,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
     feats = [f for f in train_df.columns if f not in FEATS_EXCLUDED]
 
     # k-fold
-    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park'])):
+    for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park_japanese_holiday'])):
         train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
         valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
 
@@ -97,17 +101,17 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                 'objective': 'regression',
                 'metric': 'rmse',
                 'learning_rate': 0.01,
-                'num_leaves': 47,
-                'colsample_bytree': 0.4741037274946231,
-                'subsample': 0.5940687519599184,
+                'num_leaves': 41,
+                'colsample_bytree': 0.38201107009363,
+                'subsample': 0.6373816744157386,
 #                'max_depth': 10,
-                'reg_alpha': 1.891291618502065,
-                'reg_lambda': 2.2734181164369485,
-                'min_split_gain': 0.10707962306031509,
-                'min_child_weight': 2.5545340440601834,
+                'reg_alpha': 4.4258390421458005,
+                'reg_lambda': 9.403889957447022,
+                'min_split_gain': 0.20772997492329257,
+                'min_child_weight': 24.200698381627483,
 #                'min_data_in_leaf': 24,
-                'top_rate': 0.4532326958863251, # for goss
-                'other_rate': 0.11058794684331633, # for goss
+                'top_rate': 0.5478354632885545, # for goss
+                'other_rate': 0.19434521704847757, # for goss
                 'verbose': -1,
                 'seed':int(2**n_fold),
                 'bagging_seed':int(2**n_fold),
@@ -129,6 +133,11 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
 
         oof_preds[valid_idx] = np.expm1(reg.predict(valid_x, num_iteration=reg.best_iteration))
         sub_preds += np.expm1(reg.predict(test_df[feats], num_iteration=reg.best_iteration)) / folds.n_splits
+
+        print(feats)
+        print(len(feats))
+        print(np.log1p(reg.feature_importance(importance_type='gain', iteration=reg.best_iteration)))
+        print(len(np.log1p(reg.feature_importance(importance_type='gain', iteration=reg.best_iteration))))
 
         fold_importance_df = pd.DataFrame()
         fold_importance_df["feature"] = feats
@@ -167,8 +176,8 @@ def main(debug=False, use_pkl=False):
             df = pd.merge(df, hotlink(num_rows), on='datetime', how='outer')
         with timer("colopl"):
             df = pd.merge(df, colopl(num_rows), on=['park', 'year', 'month'], how='outer')
-#        with timer("weather"):
-#            df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
+        with timer("weather"):
+            df = pd.merge(df, weather(num_rows), on=['datetime', 'park'], how='outer')
         with timer("nied_oyama"):
             df = pd.merge(df, nied_oyama(num_rows), on=['datetime', 'park'], how='outer')
         with timer("agoop"):

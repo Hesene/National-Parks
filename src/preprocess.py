@@ -160,12 +160,19 @@ def colopl(num_rows=None):
     colopl['count'] = colopl['count'].replace('1-9', 5).astype(int)
 
     # 月ごとに集計
-    colopl = colopl.pivot_table(index=['park', 'year', 'month'], columns='country_jp', values='count', aggfunc=sum)
+    colopl = colopl.pivot_table(index=['park', 'year', 'month'],
+                                columns='country_jp',
+                                values='count',
+                                aggfunc=[np.sum, np.max, np.min, 'mean'])
+
+    # nanを0埋め
+    colopl.fillna(0, inplace=True)
 
     # 前月との差分データを追加
 #    colopl_diff = colopl.diff()
 
     # カラム名を変更
+    colopl.columns = pd.Index([e[1] + "_" + e[0].upper() for e in colopl.columns.tolist()])
     colopl.columns = ['COLOPL_'+ c for c in colopl.columns]
 #    colopl_diff.columns = ['COLOPL_DIFF_'+ c for c in colopl_diff.columns]
 
@@ -197,10 +204,16 @@ def hotlink(num_rows=None):
     hotlink = pd.read_csv('../input/hotlink.tsv', sep='\t')
 
     # aggregate by datetime & keyword
-    hotlink_all = hotlink.pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
-    hotlink_bbs = hotlink[hotlink.domain=='bbs'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
-    hotlink_twitter = hotlink[hotlink.domain=='twitter_sampling'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
-    hotlink_blog = hotlink[hotlink.domain=='blog'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=sum)
+    hotlink_all = hotlink.pivot_table(index='datetime',columns='keyword', values='count', aggfunc=[np.sum, 'mean'])
+    hotlink_bbs = hotlink[hotlink.domain=='bbs'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=[np.sum, 'mean'])
+    hotlink_twitter = hotlink[hotlink.domain=='twitter_sampling'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=[np.sum, 'mean'])
+    hotlink_blog = hotlink[hotlink.domain=='blog'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=[np.sum, 'mean'])
+
+    # 欠損値をゼロ埋め
+    hotlink_all.fillna(0, inplace=True)
+    hotlink_bbs.fillna(0, inplace=True)
+    hotlink_twitter.fillna(0, inplace=True)
+    hotlink_blog.fillna(0, inplace=True)
 
     # indexをdatetime型に変換
     hotlink_all.index = pd.to_datetime(hotlink_all.index)
@@ -215,6 +228,11 @@ def hotlink(num_rows=None):
     hotlink_blog = hotlink_blog.shift()
 
     # カラム名を変更
+    hotlink_all.columns = pd.Index([e[1] + "_" + e[0].upper() for e in hotlink_all.columns.tolist()])
+    hotlink_bbs.columns = pd.Index([e[1] + "_" + e[0].upper() for e in hotlink_bbs.columns.tolist()])
+    hotlink_twitter.columns = pd.Index([e[1] + "_" + e[0].upper() for e in hotlink_twitter.columns.tolist()])
+    hotlink_blog.columns = pd.Index([e[1] + "_" + e[0].upper() for e in hotlink_blog.columns.tolist()])
+
     hotlink_all.columns = ['HOTLINK_ALL_'+ c for c in hotlink_all.columns]
     hotlink_bbs.columns = ['HOTLINK_BBS_'+ c for c in hotlink_bbs.columns]
     hotlink_twitter.columns = ['HOTLINK_TWITTER_'+ c for c in hotlink_twitter.columns]
@@ -238,13 +256,24 @@ def nied_oyama(num_rows=None):
     # 公園名を追加
     nied_oyama['park'] = '大山隠岐国立公園'
 
+    feats_nied_oyama = [c for c in nied_oyama.columns if c not in ['park', 'datetime', '日時']]
+
+    # 集約用のdictを生成
+    agg_nied_oyama = {}
+    for c in feats_nied_oyama:
+        agg_nied_oyama[c]=['sum', 'mean']
+
     # 日付・公園ごとに集計
-    nied_oyama = nied_oyama.groupby(['datetime', 'park']).mean()
+    nied_oyama = nied_oyama.groupby(['datetime', 'park']).agg(agg_nied_oyama)
+
+    # ゼロ埋め
+    nied_oyama.fillna(0, inplace=True)
 
     # 1日先へシフト
     nied_oyama = nied_oyama.shift()
 
     # カラム名を変更
+    nied_oyama.columns = pd.Index([e[0] + "_" + e[1].upper() for e in nied_oyama.columns.tolist()])
     nied_oyama.columns = ['NIED_OYAMA_'+ c for c in nied_oyama.columns]
 
     return nied_oyama
@@ -262,10 +291,21 @@ def nightley(num_rows=None):
     nightley['NIGHTLEY_F_J_RATIO'] = nightley['Foreign_count'] / nightley['Japan_count']
     nightley['NIGHTLEY_F_J_SUM'] = nightley['Foreign_count'] + nightley['Japan_count']
 
+    feats_nightley = [c for c in nightley.columns if c not in ['park', 'datetime']]
+
+    # 集約用のdictを生成
+    agg_nightley = {}
+    for c in feats_nightley:
+        agg_nightley[c]=['sum', 'mean']
+
     # 日付と公園毎に集計
-    nightley = nightley.groupby(['datetime', 'park']).mean()
+    nightley = nightley.groupby(['datetime', 'park']).agg(agg_nightley)
+
+    # ゼロ埋め
+    nightley.fillna(0, inplace=True)
 
     # カラム名を変更
+    nightley.columns = pd.Index([e[0] + "_" + e[1].upper() for e in nightley.columns.tolist()])
     nightley.columns = ['NIGHTLEY_'+ c for c in nightley.columns]
 
     return nightley
@@ -279,16 +319,27 @@ def weather(num_rows=None):
     weather['park'] = weather['地点'].map(PARK_POINT)
 
     # 不要なカラムを削除
-    feats = [c for c in weather.columns if c not in ['年月日', '地点', '天気概況(昼:06時~18時)', '天気概況(夜:18時~翌日06時)']]
+    feats_weather = [c for c in weather.columns if c not in ['年月日', '地点', '天気概況(昼:06時~18時)', '天気概況(夜:18時~翌日06時)', '最多風向(16方位)']]
+    weather = weather[feats_weather]
+
+    # 集約用のdictを生成
+    agg_weather = {}
+    for c in feats_weather:
+        if c not in ['park', 'datetime']:
+            agg_weather[c]=['sum', 'mean']
 
     # 日付と公園ごとに集計
-    weather = weather[feats].groupby(['park', 'datetime']).mean()
+    weather = weather[feats_weather].groupby(['park', 'datetime']).agg(agg_weather)
+
+    # ゼロ埋め
+    weather.fillna(0, inplace=True)
 
     # １日前にシフト
     for park in PARKS.keys():
         weather.loc[park, :] = weather[weather.loc[park, :]==park].shift()
 
     # カラム名を変更
+    weather.columns = pd.Index([e[0] + "_" + e[1].upper() for e in weather.columns.tolist()])
     weather.columns = ['WEATHER_'+ c for c in weather.columns]
 
     return weather
@@ -318,14 +369,31 @@ def jorudan(num_rows=None):
     jorudan['park']=tmp_jorudan['park']
     jorudan['datetime']=tmp_jorudan['datetime']
 
+    feats_jorudan = [c for c in jorudan.columns if c not in ['park', 'datetime']]
+
+    # 集約用のdictを生成
+    agg_jorudan = {}
+    for c in feats_jorudan:
+        agg_jorudan[c]=['sum', 'mean']
+
     # 日付と公園名で集約
-    jorudan = jorudan.groupby(['park', 'datetime']).sum()
+    jorudan = jorudan.groupby(['park', 'datetime']).agg(agg_jorudan)
+
+    # ゼロ埋め
+    weather.fillna(0, inplace=True)
+
+    # カラム名の変更
+    jorudan.columns = pd.Index([e[0] + "_" + e[1].upper() for e in jorudan.columns.tolist()])
 
     # 追加の特徴量
-    jorudan['departure_and_arrival_place_sum'] = jorudan['departure_and_arrival_place_type_A']+jorudan['departure_and_arrival_place_type_D']
-    jorudan['departure_and_arrival_type_sum'] = jorudan['departure_and_arrival_type_A']+jorudan['departure_and_arrival_type_D']
-    jorudan['departure_and_arrival_place_ratio'] = jorudan['departure_and_arrival_place_type_A']/jorudan['departure_and_arrival_place_type_D']
-    jorudan['departure_and_arrival_type_ratio'] = jorudan['departure_and_arrival_type_A']/jorudan['departure_and_arrival_type_D']
+    jorudan['departure_and_arrival_place_mean_sum'] = jorudan['departure_and_arrival_place_type_A_MEAN']+jorudan['departure_and_arrival_place_type_D_MEAN']
+    jorudan['departure_and_arrival_place_sum_sum'] = jorudan['departure_and_arrival_place_type_A_SUM']+jorudan['departure_and_arrival_place_type_D_SUM']
+    jorudan['departure_and_arrival_type__mean_sum'] = jorudan['departure_and_arrival_type_A_MEAN']+jorudan['departure_and_arrival_type_D_MEAN']
+    jorudan['departure_and_arrival_type_sum_sum'] = jorudan['departure_and_arrival_type_A_SUM']+jorudan['departure_and_arrival_type_D_SUM']
+    jorudan['departure_and_arrival_place_mean_ratio'] = jorudan['departure_and_arrival_place_type_A_MEAN']/jorudan['departure_and_arrival_place_type_D_MEAN']
+    jorudan['departure_and_arrival_place_sum_ratio'] = jorudan['departure_and_arrival_place_type_A_SUM']/jorudan['departure_and_arrival_place_type_D_SUM']
+    jorudan['departure_and_arrival_type_mean_ratio'] = jorudan['departure_and_arrival_type_A_MEAN']/jorudan['departure_and_arrival_type_D_MEAN']
+    jorudan['departure_and_arrival_type_sum_ratio'] = jorudan['departure_and_arrival_type_A_SUM']/jorudan['departure_and_arrival_type_D_SUM']
 
     # カラム名を変更
     jorudan.columns = ['JORUDAN_'+ c for c in jorudan.columns]
@@ -348,9 +416,11 @@ def agoop(num_rows=None):
             # pivot tableで集約
             tmp_agoop = tmp_agoop.pivot_table(index=['park', 'year', 'month'],
                                               columns=['dayflag', 'hour'],
-                                              values='population', aggfunc=sum)
+                                              values='population',
+                                              aggfunc=[np.sum, 'mean'])
 
             # カラム名を変更
+            tmp_agoop.columns = pd.Index([str(e[1]) + "_" + e[0].upper() for e in tmp_agoop.columns.tolist()])
             tmp_agoop.columns = ['AGOOP_dayflag'+str(tup[0])+'_'+'hour'+str(tup[1]) for tup in tmp_agoop.columns.values]
 
             # merge

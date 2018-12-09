@@ -96,7 +96,7 @@ def main():
                                               'min_data_in_leaf': (0, 500),
                                               })
 
-    clf_bo.maximize(init_points=30, n_iter=50)
+    clf_bo.maximize(init_points=15, n_iter=25)
 
     res = pd.DataFrame(clf_bo.res['max']['max_params'], index=['max_params'])
 
