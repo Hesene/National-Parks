@@ -163,7 +163,7 @@ def colopl(num_rows=None):
     colopl = colopl.pivot_table(index=['park', 'year', 'month'],
                                 columns='country_jp',
                                 values='count',
-                                aggfunc=[np.sum, np.max, np.min, 'mean'])
+                                aggfunc=[np.sum, 'mean'])
 
     # nanを0埋め
     colopl.fillna(0, inplace=True)
@@ -380,7 +380,7 @@ def jorudan(num_rows=None):
     jorudan = jorudan.groupby(['park', 'datetime']).agg(agg_jorudan)
 
     # ゼロ埋め
-    weather.fillna(0, inplace=True)
+    jorudan.fillna(0, inplace=True)
 
     # カラム名の変更
     jorudan.columns = pd.Index([e[0] + "_" + e[1].upper() for e in jorudan.columns.tolist()])
