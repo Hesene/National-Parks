@@ -205,10 +205,10 @@ def hotlink(num_rows=None):
     hotlink = pd.read_csv('../input/hotlink.tsv', sep='\t')
 
     # aggregate by datetime & keyword
-    hotlink_all = hotlink.pivot_table(index='datetime',columns='keyword', values='count', aggfunc=[np.sum, 'mean'])
-    hotlink_bbs = hotlink[hotlink.domain=='bbs'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=[np.sum, 'mean'])
-    hotlink_twitter = hotlink[hotlink.domain=='twitter_sampling'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=[np.sum, 'mean'])
-    hotlink_blog = hotlink[hotlink.domain=='blog'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=[np.sum, 'mean'])
+    hotlink_all = hotlink.pivot_table(index='datetime',columns='keyword', values='count', aggfunc=[np.sum, np.max, 'mean'])
+    hotlink_bbs = hotlink[hotlink.domain=='bbs'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=[np.sum, np.max, 'mean'])
+    hotlink_twitter = hotlink[hotlink.domain=='twitter_sampling'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=[np.sum, np.max, 'mean'])
+    hotlink_blog = hotlink[hotlink.domain=='blog'].pivot_table(index='datetime', columns='keyword', values='count', aggfunc=[np.sum, np.max, 'mean'])
 
     # 欠損値をゼロ埋め
     hotlink_all.fillna(0, inplace=True)
@@ -246,7 +246,7 @@ def hotlink(num_rows=None):
     gc.collect()
 
     return hotlink
-    
+
 # Preprocess nied_oyama.tsv
 def nied_oyama(num_rows=None):
     nied_oyama = pd.read_csv('../input/nied_oyama.tsv', sep='\t')
@@ -262,7 +262,7 @@ def nied_oyama(num_rows=None):
     # 集約用のdictを生成
     agg_nied_oyama = {}
     for c in feats_nied_oyama:
-        agg_nied_oyama[c]=['sum', 'mean']
+        agg_nied_oyama[c]=['max', 'min', 'mean', 'std']
 
     # 日付・公園ごとに集計
     nied_oyama = nied_oyama.groupby(['datetime', 'park']).agg(agg_nied_oyama)
@@ -297,7 +297,7 @@ def nightley(num_rows=None):
     # 集約用のdictを生成
     agg_nightley = {}
     for c in feats_nightley:
-        agg_nightley[c]=['sum', 'mean']
+        agg_nightley[c]=['sum', 'mean', 'max', 'min']
 
     # 日付と公園毎に集計
     nightley = nightley.groupby(['datetime', 'park']).agg(agg_nightley)
@@ -413,10 +413,11 @@ def agoop(num_rows=None):
             # pivot tableで集約
             tmp_agoop = tmp_agoop.pivot_table(index=['park', 'year', 'month'],
                                               columns=['dayflag', 'hour'],
-                                              values='population', aggfunc=sum)
+                                              values='population',
+                                              aggfunc=[np.sum, 'mean'])
 
             # カラム名を変更
-            tmp_agoop.columns = ['AGOOP_dayflag'+str(tup[0])+'_'+'hour'+str(tup[1]) for tup in tmp_agoop.columns.values]
+            tmp_agoop.columns = ['AGOOP_dayflag'+str(tup[1])+'_'+'hour'+str(tup[2])+'_'+tup[0].upper() for tup in tmp_agoop.columns.values]
 
             # merge
             agoop = agoop.append(tmp_agoop)
