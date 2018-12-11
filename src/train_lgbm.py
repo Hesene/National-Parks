@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from matplotlib.font_manager import FontProperties
 from pandas.core.common import SettingWithCopyWarning
 from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import KFold, StratifiedKFold, TimeSeriesSplit
+from sklearn.model_selection import KFold, StratifiedKFold
 
 from preprocess import train_test, nightley, hotlink, colopl, weather, nied_oyama, jorudan, agoop
 from utils import line_notify, NUM_FOLDS, FEATS_EXCLUDED, loadpkl, save2pkl, PARKS
@@ -95,23 +95,21 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
         # パラメータは適当です
         params ={
                 'device' : 'gpu',
-                'gpu_use_dp':True,
+#                'gpu_use_dp':True,
                 'task': 'train',
-                'boosting': 'goss',
+                'boosting': 'gbdt',
                 'objective': 'regression',
                 'metric': 'rmse',
                 'learning_rate': 0.01,
-                'num_leaves': 41,
-                'colsample_bytree': 0.38201107009363,
-                'subsample': 0.6373816744157386,
-#                'max_depth': 10,
-                'reg_alpha': 4.4258390421458005,
-                'reg_lambda': 9.403889957447022,
-                'min_split_gain': 0.20772997492329257,
-                'min_child_weight': 24.200698381627483,
-                'min_data_in_leaf': 24,
-                'top_rate': 0.5478354632885545, # for goss
-                'other_rate': 0.19434521704847757, # for goss
+                'num_leaves': 44,
+                'colsample_bytree': 0.695190781578034,
+                'subsample': 0.488562713025008,
+                'max_depth': 10,
+                'reg_alpha': 0.048823648223605,
+                'reg_lambda': 1.1453903921195,
+                'min_split_gain': 0.019673304639706,
+                'min_child_weight': 0.403539896960081,
+                'min_data_in_leaf': 1,
                 'verbose': -1,
                 'seed':int(2**n_fold),
                 'bagging_seed':int(2**n_fold),
@@ -133,11 +131,6 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
 
         oof_preds[valid_idx] = np.expm1(reg.predict(valid_x, num_iteration=reg.best_iteration))
         sub_preds += np.expm1(reg.predict(test_df[feats], num_iteration=reg.best_iteration)) / folds.n_splits
-
-        print(feats)
-        print(len(feats))
-        print(np.log1p(reg.feature_importance(importance_type='gain', iteration=reg.best_iteration)))
-        print(len(np.log1p(reg.feature_importance(importance_type='gain', iteration=reg.best_iteration))))
 
         fold_importance_df = pd.DataFrame()
         fold_importance_df["feature"] = feats

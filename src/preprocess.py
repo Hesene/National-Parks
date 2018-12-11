@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import gc
 import os
+import datetime
 
 from jpholiday import is_holiday
 
@@ -119,12 +120,12 @@ def train_test(num_rows=None):
     df['month'] = df['datetime'].dt.month.astype(object)
     df['weekday'] = df['datetime'].dt.weekday.astype(object)
     df['weekofyear'] = df['datetime'].dt.weekofyear.astype(object)
-#    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
+    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
     df['day_weekday'] = df['day'].astype(str)+'_'+df['weekday'].astype(str)
-#    df['day_weekofyear'] = df['day'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['day_weekofyear'] = df['day'].astype(str)+'_'+df['weekofyear'].astype(str)
     df['month_weekday'] = df['month'].astype(str)+'_'+df['weekday'].astype(str)
     df['month_weekofyear'] = df['month'].astype(str)+'_'+df['weekofyear'].astype(str)
-#    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
     df['new_years_day'] = getNewYearsDay(df['datetime'])
     df['golden_week'] = getGoldenWeek(df['datetime'])
 
@@ -132,7 +133,7 @@ def train_test(num_rows=None):
     df['park_month'] = df['park'].astype(str)+'_'+df['month'].astype(str)
     df['park_weekday'] = df['park'].astype(str)+'_'+df['weekday'].astype(str)
     df['park_japanese_holiday'] = df['park'].astype(str)+'_'+df['japanese_holiday'].astype(str)
-#    df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
+    df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
     df['park_num_holiday'] = df['park'].astype(str)+'_'+df['num_holidays'].astype(str)
     df['park_new_years_day'] = df['park'].astype(str)+'_'+df['new_years_day'].astype(str)
     df['park_golden_week'] = df['park'].astype(str)+'_'+df['golden_week'].astype(str)
@@ -245,7 +246,7 @@ def hotlink(num_rows=None):
     gc.collect()
 
     return hotlink
-
+    
 # Preprocess nied_oyama.tsv
 def nied_oyama(num_rows=None):
     nied_oyama = pd.read_csv('../input/nied_oyama.tsv', sep='\t')
@@ -315,6 +316,9 @@ def weather(num_rows=None):
     weather = pd.read_csv('../input/weather.tsv', sep='\t')
     weather['datetime'] = pd.to_datetime(weather['年月日'])
 
+    # １日前にシフト
+    weather['datetime'] = weather['datetime']+datetime.timedelta(1)
+
     # 公園と紐付け
     weather['park'] = weather['地点'].map(PARK_POINT)
 
@@ -326,17 +330,10 @@ def weather(num_rows=None):
     agg_weather = {}
     for c in feats_weather:
         if c not in ['park', 'datetime']:
-            agg_weather[c]=['sum', 'mean']
+            agg_weather[c]=['min', 'max', 'mean', 'std']
 
     # 日付と公園ごとに集計
     weather = weather[feats_weather].groupby(['park', 'datetime']).agg(agg_weather)
-
-    # ゼロ埋め
-    weather.fillna(0, inplace=True)
-
-    # １日前にシフト
-    for park in PARKS.keys():
-        weather.loc[park, :] = weather[weather.loc[park, :]==park].shift()
 
     # カラム名を変更
     weather.columns = pd.Index([e[0] + "_" + e[1].upper() for e in weather.columns.tolist()])
@@ -416,11 +413,9 @@ def agoop(num_rows=None):
             # pivot tableで集約
             tmp_agoop = tmp_agoop.pivot_table(index=['park', 'year', 'month'],
                                               columns=['dayflag', 'hour'],
-                                              values='population',
-                                              aggfunc=[np.sum, 'mean'])
+                                              values='population', aggfunc=sum)
 
             # カラム名を変更
-            tmp_agoop.columns = pd.Index([str(e[1]) + "_" + e[0].upper() for e in tmp_agoop.columns.tolist()])
             tmp_agoop.columns = ['AGOOP_dayflag'+str(tup[0])+'_'+'hour'+str(tup[1]) for tup in tmp_agoop.columns.values]
 
             # merge
