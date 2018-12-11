@@ -185,7 +185,7 @@ def main(debug=False, use_pkl=False):
         display_importances(feat_importance ,'../output/lgbm_importances.png', '../output/feature_importance_lgbm.csv')
 
 if __name__ == "__main__":
-    submission_file_name = "../output/submission.tsv"
+    submission_file_name = "../output/submission_lgbm.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
         main(debug=False,use_pkl=False)

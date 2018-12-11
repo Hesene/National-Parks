@@ -80,67 +80,65 @@ def kfold_xgboost(df, num_folds, stratified = False, debug= False):
     feature_importance_df = pd.DataFrame()
     feats = [f for f in train_df.columns if f not in FEATS_EXCLUDED]
 
+    # final predict用にdmatrix形式のtest dfを作っておきます
+    test_df_dmtrx = xgb.DMatrix(test_df[feats], label=train_df['visitors'])
+
     # k-fold
     for n_fold, (train_idx, valid_idx) in enumerate(folds.split(train_df[feats], train_df['park_japanese_holiday'])):
         train_x, train_y = train_df[feats].iloc[train_idx], np.log1p(train_df['visitors'].iloc[train_idx])
         valid_x, valid_y = train_df[feats].iloc[valid_idx], np.log1p(train_df['visitors'].iloc[valid_idx])
 
         # set data structure
-        lgb_train = lgb.Dataset(train_x,
-                                label=train_y,
-                                free_raw_data=False)
-        lgb_test = lgb.Dataset(valid_x,
-                               label=valid_y,
-                               free_raw_data=False)
+        xgb_train = xgb.DMatrix(train_x,
+                                label=train_y)
+        xgb_test = xgb.DMatrix(valid_x,
+                               label=valid_y)
 
-        # パラメータは適当です
-        params ={
-                'device' : 'gpu',
-#                'gpu_use_dp':True,
-                'task': 'train',
-                'boosting': 'gbdt',
-                'objective': 'regression',
-                'metric': 'rmse',
-                'learning_rate': 0.01,
-                'num_leaves': 44,
-                'colsample_bytree': 0.695190781578034,
-                'subsample': 0.488562713025008,
-                'max_depth': 10,
-                'reg_alpha': 0.048823648223605,
-                'reg_lambda': 1.1453903921195,
-                'min_split_gain': 0.019673304639706,
-                'min_child_weight': 0.403539896960081,
-                'min_data_in_leaf': 1,
-                'verbose': -1,
-                'seed':int(2**n_fold),
-                'bagging_seed':int(2**n_fold),
-                'drop_seed':int(2**n_fold)
+        # params
+        params = {
+                'objective':'gpu:reg:linear', # GPU parameter
+                'booster': 'gbtree',
+                'eval_metric':'rmse',
+                'silent':1,
+                'eta': 0.01,
+                'max_depth': 6,
+                'min_child_weight': 19,
+                'gamma': 0.479411416192221,
+                'subsample': 0.976329169063721,
+                'colsample_bytree': 0.921410871323335,
+                'colsample_bylevel': 0.603858358771505,
+                'alpha':9.86942860885701,
+                'lambda': 9.63581598065735,
+                'tree_method': 'gpu_hist', # GPU parameter
+                'predictor': 'gpu_predictor', # GPU parameter
+                'seed':int(2**n_fold)
                 }
 
-        reg = lgb.train(
+        reg = xgb.train(
                         params,
-                        lgb_train,
-                        valid_sets=[lgb_train, lgb_test],
-                        valid_names=['train', 'test'],
+                        xgb_train,
                         num_boost_round=10000,
+                        evals=[(xgb_train,'train'),(xgb_test,'test')],
                         early_stopping_rounds= 200,
                         verbose_eval=100
                         )
 
         # save model
-        reg.save_model('../output/lgbm_'+str(n_fold)+'.txt')
+        reg.save_model('../output/xgb_'+str(n_fold)+'.txt')
 
-        oof_preds[valid_idx] = np.expm1(reg.predict(valid_x, num_iteration=reg.best_iteration))
-        sub_preds += np.expm1(reg.predict(test_df[feats], num_iteration=reg.best_iteration)) / folds.n_splits
+        oof_preds[valid_idx] = np.expm1(reg.predict(xgb_test))
+        sub_preds += np.expm1(reg.predict(test_df_dmtrx)) / num_folds
 
-        fold_importance_df = pd.DataFrame()
-        fold_importance_df["feature"] = feats
-        fold_importance_df["importance"] = np.log1p(reg.feature_importance(importance_type='gain', iteration=reg.best_iteration))
+        fold_importance_df = pd.DataFrame.from_dict(reg.get_score(importance_type='gain'), orient='index', columns=['importance'])
+        fold_importance_df["feature"] = fold_importance_df.index.tolist()
         fold_importance_df["fold"] = n_fold + 1
         feature_importance_df = pd.concat([feature_importance_df, fold_importance_df], axis=0)
         print('Fold %2d MAE : %.6f' % (n_fold + 1, mean_absolute_error(np.expm1(valid_y), oof_preds[valid_idx])))
         del reg, train_x, train_y, valid_x, valid_y
         gc.collect()
+
+    del test_df_dmtrx
+    gc.collect()
 
     # Full MAEスコアの表示&LINE通知
     full_mae = mean_absolute_error(train_df['visitors'], oof_preds)
@@ -183,10 +181,10 @@ def main(debug=False, use_pkl=False):
     with timer("Run XGBoost with kfold"):
         print("df shape:", df.shape)
         feat_importance = kfold_xgboost(df, num_folds=NUM_FOLDS, stratified=True, debug=debug)
-        display_importances(feat_importance ,'../output/lgbm_importances.png', '../output/feature_importance_lgbm.csv')
+        display_importances(feat_importance ,'../output/xgb_importances.png', '../output/feature_importance_xgb.csv')
 
 if __name__ == "__main__":
-    submission_file_name = "../output/submission.tsv"
-    oof_file_name = "../output/oof_lgbm.csv"
+    submission_file_name = "../output/submission_xgb.tsv"
+    oof_file_name = "../output/oof_xgb.csv"
     with timer("Full model run"):
-        main(debug=False,use_pkl=False)
+        main(debug=False,use_pkl=True)
