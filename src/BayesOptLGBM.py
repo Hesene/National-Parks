@@ -7,7 +7,7 @@ from bayes_opt import BayesianOptimization
 from sklearn.model_selection import KFold, StratifiedKFold
 
 from preprocess import train_test, nightley, hotlink, colopl, weather, nied_oyama, jorudan, agoop
-from utils import FEATS_EXCLUDED, NUM_FOLDS, loadpkl
+from utils import FEATS_EXCLUDED, NUM_FOLDS, loadpkl, line_notify
 
 # 以下参考
 # https://github.com/fmfn/BayesianOptimization
@@ -101,6 +101,8 @@ def main():
     res = pd.DataFrame(clf_bo.res['max']['max_params'], index=['max_params'])
 
     res.to_csv('../output/max_params_lgbm.csv')
+
+    line_notify('Bayes Opt LightGBM finished.')
 
 if __name__ == '__main__':
     main()

@@ -8,7 +8,7 @@ import gc
 from sklearn.model_selection import KFold, StratifiedKFold
 
 from preprocess import train_test, nightley, hotlink, colopl, weather, nied_oyama, jorudan, agoop
-from utils import FEATS_EXCLUDED, NUM_FOLDS, loadpkl
+from utils import FEATS_EXCLUDED, NUM_FOLDS, loadpkl, line_notify
 
 ################################################################################
 # optunaによるhyper parameter最適化
@@ -51,12 +51,12 @@ def objective(trial):
               'num_leaves': trial.suggest_int('num_leaves', 16, 64),
               'colsample_bytree': trial.suggest_uniform('colsample_bytree', 0.001, 1),
               'subsample': trial.suggest_uniform('subsample', 0.001, 1),
-              'max_depth': trial.suggest_int('num_leaves', 16, 64),
+              'max_depth': trial.suggest_int('max_depth', 5, 20),
               'reg_alpha': trial.suggest_uniform('reg_alpha', 0, 10),
               'reg_lambda': trial.suggest_uniform('reg_lambda', 0, 10),
               'min_split_gain': trial.suggest_uniform('min_split_gain', 0, 10),
               'min_child_weight': trial.suggest_uniform('min_child_weight', 0, 45),
-              'min_data_in_leaf': trial.suggest_int('num_leaves', 16, 64)
+              'min_data_in_leaf': trial.suggest_int('min_data_in_leaf', 16, 64)
               }
 
     if params['boosting_type'] == 'dart':
@@ -99,3 +99,5 @@ if __name__ == '__main__':
     # save result
     hist_df = study.trials_dataframe()
     hist_df.to_csv("../output/optuna_result_lgbm.csv")
+
+    line_notify('optuna LightGBM finished.')
