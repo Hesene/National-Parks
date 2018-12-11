@@ -83,7 +83,7 @@ def objective(trial):
 
 if __name__ == '__main__':
     study = optuna.create_study()
-    study.optimize(objective, n_trials=20)
+    study.optimize(objective, n_trials=30)
 
     print('Number of finished trials: {}'.format(len(study.trials)))
 

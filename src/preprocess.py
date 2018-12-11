@@ -164,7 +164,7 @@ def colopl(num_rows=None):
     colopl = colopl.pivot_table(index=['park', 'year', 'month'],
                                 columns='country_jp',
                                 values='count',
-                                aggfunc=[np.sum, 'mean'])
+                                aggfunc=[np.sum, 'mean', np.max])
 
     # nanを0埋め
     colopl.fillna(0, inplace=True)
@@ -297,7 +297,7 @@ def nightley(num_rows=None):
     # 集約用のdictを生成
     agg_nightley = {}
     for c in feats_nightley:
-        agg_nightley[c]=['sum', 'mean', 'max', 'min']
+        agg_nightley[c]=['sum', 'mean', 'max', 'min', 'std']
 
     # 日付と公園毎に集計
     nightley = nightley.groupby(['datetime', 'park']).agg(agg_nightley)
@@ -414,7 +414,7 @@ def agoop(num_rows=None):
             tmp_agoop = tmp_agoop.pivot_table(index=['park', 'year', 'month'],
                                               columns=['dayflag', 'hour'],
                                               values='population',
-                                              aggfunc=[np.sum, 'mean'])
+                                              aggfunc=[np.sum, 'mean', 'max', 'min', 'std'])
 
             # カラム名を変更
             tmp_agoop.columns = ['AGOOP_dayflag'+str(tup[1])+'_'+'hour'+str(tup[2])+'_'+tup[0].upper() for tup in tmp_agoop.columns.values]

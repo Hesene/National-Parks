@@ -142,7 +142,7 @@ def kfold_xgboost(df, num_folds, stratified = False, debug= False):
 
     # Full MAEスコアの表示&LINE通知
     full_mae = mean_absolute_error(train_df['visitors'], oof_preds)
-    line_notify('Full MAE score %.6f' % full_mae)
+    line_notify('XGBoost Full MAE score %.6f' % full_mae)
 
     if not debug:
         # 提出データの予測値を保存

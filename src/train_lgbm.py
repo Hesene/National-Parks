@@ -143,7 +143,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
 
     # Full MAEスコアの表示&LINE通知
     full_mae = mean_absolute_error(train_df['visitors'], oof_preds)
-    line_notify('Full MAE score %.6f' % full_mae)
+    line_notify('LigntGBM Full MAE score %.6f' % full_mae)
 
     if not debug:
         # 提出データの予測値を保存
@@ -188,4 +188,4 @@ if __name__ == "__main__":
     submission_file_name = "../output/submission_lgbm.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
-        main(debug=False,use_pkl=False)
+        main(debug=False,use_pkl=True)

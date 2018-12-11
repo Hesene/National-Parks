@@ -4,40 +4,52 @@ import numpy as np
 import pandas as pd
 import gc
 
+from sklearn.metrics import mean_absolute_error
+
+from utils import line_notify, loadpkl
+
 ################################################################################
 # Preprocessingで作成したテストデータ及びLearningで作成したモデルを読み込み、予測結果をファイルとして出力するモジュール。
 ################################################################################
 
 def main():
     # submitファイルをロード
-    sub = pd.read_csv("../input/sample_submission_v2.csv",dtype={'fullVisitorId': str})
-    sub_lgbm = pd.read_csv("../output/submission_lgbm.csv",dtype={'fullVisitorId': str})
-    sub_xgb = pd.read_csv("../output/submission_xgb.csv",dtype={'fullVisitorId': str})
+    sub = pd.read_csv("../input/sample_submit.tsv",sep='\t', header=None)
+    sub_lgbm = pd.read_csv("../output/submission_lgbm.tsv",sep='\t', header=None)
+    sub_xgb = pd.read_csv("../output/submission_xgb.tsv",sep='\t', header=None)
+
+    # カラム名を変更
+    sub.columns =['index', 'visitors']
+    sub_lgbm.columns =['index', 'visitors']
+    sub_xgb.columns =['index', 'visitors']
 
     # merge
-    sub['lgbm'] = np.expm1(sub_lgbm['PredictedLogRevenue'])
-    sub['xgb'] = np.expm1(sub_xgb['PredictedLogRevenue'])
-    sub.loc[:,'PredictedLogRevenue'] = np.log1p(0.5*sub['lgbm']+0.5*sub['xgb'])
+    sub.loc[:,'visitors'] = 0.5*sub_lgbm['visitors']+0.5*sub_xgb['visitors']
 
     del sub_lgbm, sub_xgb
     gc.collect()
 
     # out of foldの予測値をロード
-    oof_lgbm = pd.read_csv("../output/oof_lgbm.csv",dtype={'fullVisitorId': str})
-    oof_xgb = pd.read_csv("../output/oof_xgb.csv",dtype={'fullVisitorId': str})
-    oof = 0.5*oof_lgbm['OOF_PRED']+0.5*oof_xgb['OOF_PRED']
+    oof_lgbm = pd.read_csv("../output/oof_lgbm.csv")
+    oof_xgb = pd.read_csv("../output/oof_xgb.csv")
+    oof_preds = 0.5*oof_lgbm['OOF_PRED']+0.5*oof_xgb['OOF_PRED']
+
+    # train_dfをロード
+    train_df = loadpkl('../output/train_df.pkl')
+    train_df = train_df.sort_values('index')
 
     # local cv scoreを算出
-    local_rmse = rmse(np.log1p(oof_lgbm['totals.transactionRevenue_SUM']), np.log1p(oof))
+    local_mae = mean_absolute_error(train_df['visitors'], oof_preds)
+
+    # LINE通知
+    line_notify('Blend Local MAE score %.6f' % local_mae)
 
     del oof_lgbm, oof_xgb
     gc.collect()
 
     # save submit file
-    sub[['fullVisitorId', 'PredictedLogRevenue']].to_csv(submission_file_name, index=False)
-
-    # submit
-    submit(submission_file_name, comment='cv: %.6f' % local_rmse)
+    sub[['index', 'visitors']].sort_values('index').to_csv(submission_file_name, index=False, header=False, sep='\t')
 
 if __name__ == '__main__':
+    submission_file_name = "../output/submission_blend.csv"
     main()
