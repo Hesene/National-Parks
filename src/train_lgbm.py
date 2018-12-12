@@ -95,21 +95,21 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
         # パラメータは適当です
         params ={
                 'device' : 'gpu',
-#                'gpu_use_dp':True,
+                'gpu_use_dp':True,
                 'task': 'train',
                 'boosting': 'gbdt',
                 'objective': 'regression',
                 'metric': 'rmse',
-                'learning_rate': 0.01,
-                'num_leaves': 44,
-                'colsample_bytree': 0.695190781578034,
-                'subsample': 0.488562713025008,
-                'max_depth': 10,
-                'reg_alpha': 0.048823648223605,
-                'reg_lambda': 1.1453903921195,
-                'min_split_gain': 0.019673304639706,
-                'min_child_weight': 0.403539896960081,
-                'min_data_in_leaf': 1,
+                'learning_rate': 0.001,
+                'num_leaves': 63,
+                'colsample_bytree': 0.767410578035723,
+                'subsample': 0.025454928376965,
+                'max_depth': 16,
+                'reg_alpha': 8.66178006952489,
+                'reg_lambda': 1.34916124422932,
+                'min_split_gain': 0.034209331960504,
+                'min_child_weight': 43.2989720314933,
+                'min_data_in_leaf': 23,
                 'verbose': -1,
                 'seed':int(2**n_fold),
                 'bagging_seed':int(2**n_fold),
@@ -121,7 +121,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                         lgb_train,
                         valid_sets=[lgb_train, lgb_test],
                         valid_names=['train', 'test'],
-                        num_boost_round=10000,
+                        num_boost_round=50000,
                         early_stopping_rounds= 200,
                         verbose_eval=100
                         )
@@ -188,4 +188,4 @@ if __name__ == "__main__":
     submission_file_name = "../output/submission_lgbm.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
-        main(debug=False,use_pkl=True)
+        main(debug=False,use_pkl=False)

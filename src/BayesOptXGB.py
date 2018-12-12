@@ -49,7 +49,7 @@ def xgb_eval(gamma,
             'booster': 'gbtree',
             'eval_metric':'rmse',
             'silent':1,
-            'eta': 0.01,
+            'eta': 0.02,
             'tree_method': 'gpu_hist', # GPU parameter
             'predictor': 'gpu_predictor', # GPU parameter
             'seed':326
@@ -83,12 +83,12 @@ def xgb_eval(gamma,
 def main():
     # reg for bayesian optimization
     reg_bo = BayesianOptimization(xgb_eval, {'gamma':(0, 1),
-                                             'max_depth': (6, 6),
+                                             'max_depth': (5, 10),
                                              'min_child_weight': (0, 45),
                                              'subsample': (0.001, 1),
                                              'colsample_bytree': (0.001, 1),
                                              'colsample_bylevel': (0.001, 1),
-                                             'alpha': (9, 20),
+                                             'alpha': (0, 10),
                                              '_lambda': (0, 10)
                                              })
 
