@@ -51,5 +51,5 @@ def main():
     sub[['index', 'visitors']].sort_values('index').to_csv(submission_file_name, index=False, header=False, sep='\t')
 
 if __name__ == '__main__':
-    submission_file_name = "../output/submission_blend.csv"
+    submission_file_name = "../output/submission_blend.tsv"
     main()
