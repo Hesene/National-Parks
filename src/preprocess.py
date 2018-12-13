@@ -120,20 +120,20 @@ def train_test(num_rows=None):
     df['month'] = df['datetime'].dt.month.astype(object)
     df['weekday'] = df['datetime'].dt.weekday.astype(object)
     df['weekofyear'] = df['datetime'].dt.weekofyear.astype(object)
-    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
-    df['day_weekday'] = df['day'].astype(str)+'_'+df['weekday'].astype(str)
-    df['day_weekofyear'] = df['day'].astype(str)+'_'+df['weekofyear'].astype(str)
+#    df['day_month'] = df['day'].astype(str)+'_'+df['month'].astype(str)
+#    df['day_weekday'] = df['day'].astype(str)+'_'+df['weekday'].astype(str)
+#    df['day_weekofyear'] = df['day'].astype(str)+'_'+df['weekofyear'].astype(str)
     df['month_weekday'] = df['month'].astype(str)+'_'+df['weekday'].astype(str)
     df['month_weekofyear'] = df['month'].astype(str)+'_'+df['weekofyear'].astype(str)
-    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
+#    df['weekday_weekofyear'] = df['weekday'].astype(str)+'_'+df['weekofyear'].astype(str)
     df['new_years_day'] = getNewYearsDay(df['datetime'])
     df['golden_week'] = getGoldenWeek(df['datetime'])
 
-    df['park_day'] = df['park'].astype(str)+'_'+df['day'].astype(str)
+#    df['park_day'] = df['park'].astype(str)+'_'+df['day'].astype(str)
     df['park_month'] = df['park'].astype(str)+'_'+df['month'].astype(str)
     df['park_weekday'] = df['park'].astype(str)+'_'+df['weekday'].astype(str)
     df['park_japanese_holiday'] = df['park'].astype(str)+'_'+df['japanese_holiday'].astype(str)
-    df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
+#    df['park_weekofyear'] = df['park'].astype(str)+'_'+df['weekofyear'].astype(str)
     df['park_num_holiday'] = df['park'].astype(str)+'_'+df['num_holidays'].astype(str)
     df['park_new_years_day'] = df['park'].astype(str)+'_'+df['new_years_day'].astype(str)
     df['park_golden_week'] = df['park'].astype(str)+'_'+df['golden_week'].astype(str)
@@ -149,7 +149,7 @@ def train_test(num_rows=None):
     df_res['month'] = df['datetime'].dt.month.astype(int)
     df_res['park_month'], _ = pd.factorize(df['park_month'])
     df_res['park_japanese_holiday'], _ = pd.factorize(df['park_japanese_holiday'])
-    df_res['ISESHIMA_summit'] = ((df['park']=='伊勢志摩国立公園')&df['japanese_holiday']&('2016-5-27'>df['datetime'])&(df['datetime']>'2015-6-5')).astype(int) # 2016年伊勢島サミット開催決定後の休日フラグ
+#    df_res['ISESHIMA_summit'] = ((df['park']=='伊勢志摩国立公園')&df['japanese_holiday']&('2016-5-27'>df['datetime'])&(df['datetime']>'2015-6-5')).astype(int) # 2016年伊勢島サミット開催決定後の休日フラグ
 
     return df_res
 

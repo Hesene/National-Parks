@@ -83,12 +83,12 @@ def xgb_eval(gamma,
 def main():
     # reg for bayesian optimization
     reg_bo = BayesianOptimization(xgb_eval, {'gamma':(0, 1),
-                                             'max_depth': (5, 10),
+                                             'max_depth': (3, 8),
                                              'min_child_weight': (0, 45),
                                              'subsample': (0.001, 1),
                                              'colsample_bytree': (0.001, 1),
                                              'colsample_bylevel': (0.001, 1),
-                                             'alpha': (0, 10),
+                                             'alpha': (9, 20),
                                              '_lambda': (0, 10)
                                              })
 

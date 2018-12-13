@@ -97,19 +97,21 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                 'device' : 'gpu',
                 'gpu_use_dp':True,
                 'task': 'train',
-                'boosting': 'gbdt',
+                'boosting': 'goss',
                 'objective': 'regression',
                 'metric': 'rmse',
-                'learning_rate': 0.001,
-                'num_leaves': 63,
-                'colsample_bytree': 0.767410578035723,
-                'subsample': 0.025454928376965,
-                'max_depth': 16,
-                'reg_alpha': 8.66178006952489,
-                'reg_lambda': 1.34916124422932,
-                'min_split_gain': 0.034209331960504,
-                'min_child_weight': 43.2989720314933,
-                'min_data_in_leaf': 23,
+                'learning_rate': 0.01,
+                'num_leaves': 64,
+                'colsample_bytree': 0.977334338875847,
+                'subsample': 0.027687793278932,
+                'max_depth': 20,
+                'reg_alpha': 9.72886163508719,
+                'reg_lambda': 9.9935502633216,
+                'min_split_gain': 0.178508066955524,
+                'min_child_weight': 43.4750700383884,
+                'min_data_in_leaf': 18,
+                'other_rate': 0.925113620582013,
+                'top_rate': 0.006970683025472,
                 'verbose': -1,
                 'seed':int(2**n_fold),
                 'bagging_seed':int(2**n_fold),
@@ -121,7 +123,7 @@ def kfold_lightgbm(df, num_folds, stratified = False, debug= False):
                         lgb_train,
                         valid_sets=[lgb_train, lgb_test],
                         valid_names=['train', 'test'],
-                        num_boost_round=50000,
+                        num_boost_round=10000,
                         early_stopping_rounds= 200,
                         verbose_eval=100
                         )
@@ -188,4 +190,4 @@ if __name__ == "__main__":
     submission_file_name = "../output/submission_lgbm.tsv"
     oof_file_name = "../output/oof_lgbm.csv"
     with timer("Full model run"):
-        main(debug=False,use_pkl=False)
+        main(debug=False,use_pkl=True)
